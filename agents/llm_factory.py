@@ -26,12 +26,12 @@ AVAILABLE_MODELS = {
         "speed":       "fast",
         "params":      "3.8B",
     },
-    "mistral-7b": {
-        "id":          "mistralai/Mistral-7B-Instruct-v0.3",
-        "label":       "Mistral 7B v0.3",
-        "description": "Strong instruction following. Available via Sambanova on free credits.",
+    "mistral-nemo": {
+        "id":          "mistralai/Mistral-Nemo-Instruct-2407",
+        "label":       "Mistral Nemo 12B",
+        "description": "Mistral's Nemo model — strong instruction following and reasoning. Available via HF router.",
         "speed":       "medium",
-        "params":      "7B",
+        "params":      "12B",
     },
     "gemma2-9b": {
         "id":          "google/gemma-2-9b-it",
