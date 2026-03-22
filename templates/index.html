@@ -143,6 +143,13 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .demo-card-q{font-size:.73rem;color:var(--muted);line-height:1.45;margin-bottom:9px}
 .demo-card-meta{display:flex;gap:6px;flex-wrap:wrap}
 .demo-card-tag{font-size:.65rem;padding:2px 7px;border-radius:5px;font-weight:700}
+.demo-card-src{font-size:.62rem;color:var(--muted);margin-top:8px;padding-top:7px;border-top:1px solid var(--border);display:flex;align-items:center;gap:5px;overflow:hidden}
+.demo-card-src span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.demo-card::after{content:'▶  Click to run full demo';position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(18,20,28,.96) 40%);color:var(--accent);font-size:.67rem;font-weight:700;text-align:center;padding:22px 8px 10px;opacity:0;transition:opacity .25s;pointer-events:none;border-radius:0 0 10px 10px}
+.demo-card:hover::after{opacity:1}
+.demo-card.demo-loading{border-color:var(--accent)!important;pointer-events:none!important}
+.demo-card.demo-loading::after{content:'';top:8px;right:8px;bottom:unset;left:unset;width:11px;height:11px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:demo-spin .75s linear infinite;background:none;padding:0;opacity:1}
+@keyframes demo-spin{to{transform:rotate(360deg)}}
 
 /* ── SOURCE BAR ── */
 #source-bar{background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.18);border-radius:8px;padding:9px 14px;margin-bottom:16px;display:none;font-size:.82rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -409,6 +416,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(245,158,11,.12);color:var(--gold)">URL</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">consumer.ftc.gov</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--gold);flex-shrink:0"></i><span>consumer.ftc.gov/articles/understanding-your-credit-billing-rights</span></div>
       </div>
 
       <div class="demo-card" onclick="loadDemo(this)" data-url="https://www.who.int/news-room/fact-sheets/detail/diabetes" data-q="What are WHO's recommended prevention and management strategies for Type 2 diabetes?">
@@ -420,6 +428,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(6,182,212,.1);color:var(--teal)">URL</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">who.int</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--teal);flex-shrink:0"></i><span>who.int/news-room/fact-sheets/detail/diabetes</span></div>
       </div>
 
       <div class="demo-card" onclick="loadDemo(this)" data-search="LangGraph multi-agent RAG paper" data-site="arxiv.org" data-q="What methodology did the authors use and what were the main findings of this research?">
@@ -431,6 +440,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(167,139,250,.12);color:var(--purple)">Search</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">arxiv.org</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--purple);flex-shrink:0"></i><span>Search arxiv.org — "LangGraph multi-agent RAG paper"</span></div>
       </div>
 
       <div class="demo-card" onclick="loadDemo(this)" data-search="FDIC consumer rights bank account protection" data-site="fdic.gov" data-q="What are the key consumer protections and deposit insurance limits for bank account holders?">
@@ -442,6 +452,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(34,197,94,.1);color:var(--green)">Search</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">fdic.gov</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--green);flex-shrink:0"></i><span>Search fdic.gov — "FDIC consumer rights bank account protection"</span></div>
       </div>
 
       <div class="demo-card" onclick="loadDemo(this)" data-search="insurance policy exclusions common clauses explained" data-site="" data-q="What are the most common exclusion clauses in insurance policies and how do they affect claims?">
@@ -453,6 +464,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(239,68,68,.1);color:var(--red)">Search</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">Web</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--red);flex-shrink:0"></i><span>Web search — "insurance policy exclusions common clauses explained"</span></div>
       </div>
 
       <div class="demo-card" onclick="loadDemo(this)" data-url="https://en.wikipedia.org/wiki/Artificial_intelligence" data-q="What are the main subfields of artificial intelligence and what problems does each one solve?">
@@ -464,6 +476,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
           <span class="demo-card-tag" style="background:rgba(79,142,247,.12);color:var(--accent)">URL</span>
           <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">wikipedia.org</span>
         </div>
+        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--accent);flex-shrink:0"></i><span>en.wikipedia.org/wiki/Artificial_intelligence</span></div>
       </div>
 
     </div>
@@ -790,33 +803,51 @@ async function loadDemo(card) {
   const site   = card.dataset.site   || '';
   const q      = card.dataset.q      || '';
 
-  // Highlight selected card
-  document.querySelectorAll('.demo-card').forEach(c => c.style.opacity = '0.5');
-  card.style.opacity = '1';
-  card.style.borderColor = 'var(--accent)';
+  // Save original icon so we can restore it
+  const iconEl   = card.querySelector('.demo-card-icon');
+  const origIcon = iconEl ? iconEl.textContent : '';
+
+  // Lock all cards; show loading state on the clicked one
+  document.querySelectorAll('.demo-card').forEach(c => {
+    c.style.opacity       = '0.35';
+    c.style.pointerEvents = 'none';
+  });
+  card.style.opacity       = '1';
+  card.style.pointerEvents = 'auto';
+  card.classList.add('demo-loading');
+  if (iconEl) iconEl.textContent = '⏳';
 
   // Pre-fill question
   document.getElementById('q-input').value = q;
 
-  // Navigate to ingest, load source, then come back
+  // Navigate to ingest, load source
   nav('ingest');
   clearErr('ing-err');
   document.getElementById('ing-ok').innerHTML = '';
 
-  if (url) {
-    switchIngTab('url', document.querySelectorAll('.tab-btn')[0]);
-    document.getElementById('url-input').value = url;
-    await runIngestURL();
-  } else if (search) {
-    switchIngTab('search', document.querySelectorAll('.tab-btn')[1]);
-    document.getElementById('search-query').value = search;
-    document.getElementById('search-site').value  = site;
-    await runSearchIngest();
+  try {
+    if (url) {
+      switchIngTab('url', document.querySelectorAll('.tab-btn')[0]);
+      document.getElementById('url-input').value = url;
+      await runIngestURL();
+    } else if (search) {
+      switchIngTab('search', document.querySelectorAll('.tab-btn')[1]);
+      document.getElementById('search-query').value = search;
+      document.getElementById('search-site').value  = site;
+      await runSearchIngest();
+    }
+  } finally {
+    // Restore card state
+    document.querySelectorAll('.demo-card').forEach(c => {
+      c.style.opacity = '1'; c.style.borderColor = ''; c.style.pointerEvents = '';
+    });
+    card.classList.remove('demo-loading');
+    if (iconEl) iconEl.textContent = origIcon;
   }
 
-  // Reset card styles and go to research
-  document.querySelectorAll('.demo-card').forEach(c => { c.style.opacity='1'; c.style.borderColor=''; });
+  // Go to research and auto-fire the question — full one-click demo
   nav('research');
+  runResearch();
 }
 
 // ── RESEARCH ─────────────────────────────────────────────────────────────
