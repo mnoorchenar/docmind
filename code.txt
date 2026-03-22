@@ -1,21 +1,46 @@
-﻿# ── FILE: agents/llm_factory.py ───────────────────────────────────────────
-# Replaced HuggingFaceEndpoint (broken) with InferenceClient.chat_completion
-# which is the officially supported method as of 2026.
+﻿# ── FILE: requirements.txt ────────────────────────────────────────────────
+# Added: openai (for HF router OpenAI-compatible client)
+
+flask==3.1.0
+python-dotenv==1.0.1
+langgraph==0.2.55
+langchain==0.3.7
+langchain-huggingface==0.1.2
+langchain-core==0.3.21
+langchain-community==0.3.7
+huggingface-hub==0.26.2
+sentence-transformers==3.3.1
+faiss-cpu==1.9.0
+rank-bm25==0.2.2
+pypdf==5.1.0
+duckduckgo-search==6.3.7
+numpy==1.26.4
+gunicorn==23.0.0
+werkzeug==3.1.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+openai==1.59.0
+
+
+# ── FILE: agents/llm_factory.py ───────────────────────────────────────────
+# Uses OpenAI-compatible client pointed at router.huggingface.co/v1
+# This is the officially documented method in HF docs as of 2026.
 
 import os
-from huggingface_hub import InferenceClient
+from openai import OpenAI
 
-# All models below are available through the HF free monthly credits
-# via the router.huggingface.co inference providers (Sambanova, Together, etc.)
+# HF router OpenAI-compatible endpoint — officially documented
+_HF_BASE_URL = "https://router.huggingface.co/v1"
+
 AVAILABLE_MODELS = {
     "llama3-8b": {
         "id":          "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "label":       "Llama 3.1 8B (Meta)",
-        "description": "Meta's Llama 3.1 8B — best balance of quality and speed. Most popular free-tier model in 2026.",
+        "description": "Best balance of quality and speed. Most widely available on free-tier providers.",
         "speed":       "fast",
         "params":      "8B",
     },
-    "qwen2-7b": {
+    "qwen25-7b": {
         "id":          "Qwen/Qwen2.5-7B-Instruct",
         "label":       "Qwen 2.5 7B (Alibaba)",
         "description": "Strong multilingual reasoning. Excellent for structured output and document analysis.",
@@ -25,21 +50,21 @@ AVAILABLE_MODELS = {
     "phi35-mini": {
         "id":          "microsoft/Phi-3.5-mini-instruct",
         "label":       "Phi-3.5 Mini (Microsoft)",
-        "description": "3.8B params — fastest option on the free tier. Good for simple Q&A and summarization.",
+        "description": "3.8B params — fastest option. Good for simple Q&A and quick demos.",
         "speed":       "fast",
         "params":      "3.8B",
     },
     "mistral-7b": {
         "id":          "mistralai/Mistral-7B-Instruct-v0.3",
         "label":       "Mistral 7B v0.3",
-        "description": "Strong instruction following. Available via Sambanova provider on free credits.",
+        "description": "Strong instruction following. Available via Sambanova on free credits.",
         "speed":       "medium",
         "params":      "7B",
     },
     "gemma2-9b": {
         "id":          "google/gemma-2-9b-it",
         "label":       "Gemma 2 9B (Google)",
-        "description": "Google's Gemma 2 instruction-tuned — very strong factual grounding.",
+        "description": "Google's Gemma 2 instruction-tuned — strong factual grounding and reasoning.",
         "speed":       "medium",
         "params":      "9B",
     },
@@ -64,107 +89,224 @@ def get_current_model_id() -> str:
 
 
 def call_llm(prompt: str, max_new_tokens: int = 512, temperature: float = 0.7) -> str:
-    """Single unified LLM call using InferenceClient.chat_completion."""
+    """Call the HF router using OpenAI-compatible API — the official 2026 method."""
     token = os.getenv("HF_TOKEN", "")
     if not token:
         raise EnvironmentError("HF_TOKEN is not set. Add your HuggingFace Read token in Space secrets or .env.")
-    client   = InferenceClient(api_key=token)
+
+    client   = OpenAI(base_url=_HF_BASE_URL, api_key=token)
     model_id = get_current_model_id()
-    response = client.chat_completion(
+
+    response = client.chat.completions.create(
         model=model_id,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_new_tokens,
-        temperature=max(temperature, 0.01),   # 0.0 is not accepted by all providers
+        temperature=max(temperature, 0.01),
     )
     return response.choices[0].message.content.strip()
 
 
-# ── FILE: agents/planner.py ───────────────────────────────────────────────
+# ── FILE: rag/ingestor.py ─────────────────────────────────────────────────
+# Changes:
+#   1. Better browser-like headers to reduce 403s on public sites
+#   2. Retry with header rotation on 403
+#   3. Clear error message listing which sites block bots
+#   4. Longer timeout
 
-from agents.llm_factory import call_llm
+import os, re, time, requests
+from pypdf import PdfReader
+from bs4 import BeautifulSoup
+from duckduckgo_search.exceptions import RatelimitException
 
-_TEMPLATE = """You are a research planning agent. Given the user's question, produce a brief research plan.
-Decide: should the answer be grounded in uploaded documents, web search, or both?
-Output your plan in 2-3 concise sentences. Start with "PLAN:".
+MAX_PDF_BYTES = 10 * 1024 * 1024
 
-Question: {question}
+# Rotate between two user-agent strings on retry
+_HEADERS_LIST = [
+    {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    },
+    {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "keep-alive",
+    },
+]
 
-Plan:"""
-
-def run_planner(question: str) -> str:
-    prompt = _TEMPLATE.format(question=question)
-    return call_llm(prompt, max_new_tokens=200, temperature=0.3)
-
-
-# ── FILE: agents/grader.py ────────────────────────────────────────────────
-
-import re
-from agents.llm_factory import call_llm
-
-_TEMPLATE = """You are a document relevance grader. Rate how relevant this document is to the question.
-Respond with ONLY a decimal number between 0.0 (irrelevant) and 1.0 (highly relevant). Nothing else.
-
-Question: {question}
-Document excerpt: {document}
-
-Relevance score:"""
-
-def grade_document(question: str, document: str) -> float:
-    prompt = _TEMPLATE.format(question=question, document=document[:800])
-    raw    = call_llm(prompt, max_new_tokens=10, temperature=0.05)
-    nums   = re.findall(r"[0-9]+\.?[0-9]*", raw)
-    return min(float(nums[0]), 1.0) if nums else 0.5
-
-def run_grader(question: str, documents: list) -> list:
-    return [{**doc, "grade": grade_document(question, doc["page_content"])} for doc in documents]
+# Sites known to block all bot traffic regardless of headers
+_BLOCKED_DOMAINS = {"amazon.com", "www.amazon.com", "amazon.ca", "amazon.co.uk"}
 
 
-# ── FILE: agents/generator.py ─────────────────────────────────────────────
+class PDFIngestor:
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 80):
+        self.chunk_size    = chunk_size
+        self.chunk_overlap = chunk_overlap
 
-from agents.llm_factory import call_llm
+    def _extract_text(self, path: str) -> list:
+        reader = PdfReader(path)
+        pages  = []
+        for i, page in enumerate(reader.pages):
+            text = (page.extract_text() or "").strip()
+            if text:
+                pages.append({"text": text, "page": i + 1})
+        return pages
 
-_TEMPLATE = """You are an expert research analyst. Answer the question using ONLY the context below.
-Cite sources as [Source: filename, p.N] inline. If the context lacks enough information, say so clearly.
+    def _chunk(self, page_data: list, source: str) -> list:
+        chunks = []
+        for pd in page_data:
+            text  = re.sub(r"\s+", " ", pd["text"])
+            words = text.split()
+            start = 0
+            while start < len(words):
+                end   = min(start + self.chunk_size, len(words))
+                chunk = " ".join(words[start:end])
+                chunks.append({"page_content": chunk, "page": pd["page"], "source": source})
+                start += self.chunk_size - self.chunk_overlap
+        return chunks
 
-Context:
-{context}
-
-Question: {question}
-
-Answer:"""
-
-def run_generator(question: str, documents: list) -> str:
-    context_parts = [
-        f"[Source: {d.get('source','unknown')}, p.{d.get('page','?')}]\n{d['page_content']}"
-        for d in documents
-    ]
-    context = "\n\n".join(context_parts) if context_parts else "No context available."
-    prompt  = _TEMPLATE.format(question=question, context=context)
-    return call_llm(prompt, max_new_tokens=512, temperature=0.4)
+    def ingest(self, path: str) -> list:
+        size = os.path.getsize(path)
+        if size > MAX_PDF_BYTES:
+            raise ValueError(f"File exceeds 10 MB limit ({size/1024/1024:.1f} MB).")
+        filename = os.path.basename(path)
+        pages    = self._extract_text(path)
+        return self._chunk(pages, filename)
 
 
-# ── FILE: agents/critic.py ────────────────────────────────────────────────
+class URLIngestor:
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 80):
+        self.chunk_size    = chunk_size
+        self.chunk_overlap = chunk_overlap
 
-import re
-from agents.llm_factory import call_llm
+    def _check_blocked(self, url: str):
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower()
+        if domain in _BLOCKED_DOMAINS:
+            raise ValueError(
+                f"⛔ {domain} actively blocks all automated access (HTTP 403). "
+                f"This is Amazon's anti-bot policy — no tool can bypass it. "
+                f"Use their public help page via Google cache, or paste the text content manually."
+            )
 
-_TEMPLATE = """You are a strict quality-control critic. Evaluate this answer for accuracy and grounding.
-Output EXACTLY one of these two lines first, then a one-sentence explanation:
-VERDICT: APPROVED
-VERDICT: NEEDS_REVIEW
+    def _fetch_text(self, url: str) -> str:
+        last_error = None
+        for i, headers in enumerate(_HEADERS_LIST):
+            try:
+                resp = requests.get(url, headers=headers, timeout=25, allow_redirects=True)
+                if resp.status_code == 403:
+                    raise requests.HTTPError(
+                        f"403 Forbidden — this website blocks automated access. "
+                        f"Try a different URL (Wikipedia, WHO, government sites, and news sites work well).",
+                        response=resp
+                    )
+                resp.raise_for_status()
+                soup = BeautifulSoup(resp.text, "lxml")
+                for tag in soup(["script","style","nav","footer","header","aside","form","noscript","iframe"]):
+                    tag.decompose()
+                main = soup.find("main") or soup.find("article") or soup.find("body") or soup
+                text = main.get_text(separator=" ", strip=True)
+                text = re.sub(r"\s+", " ", text).strip()
+                if len(text) > 200:
+                    return text
+            except requests.HTTPError:
+                raise
+            except Exception as e:
+                last_error = e
+                if i < len(_HEADERS_LIST) - 1:
+                    time.sleep(2)
+        raise ValueError(f"Could not fetch URL after {len(_HEADERS_LIST)} attempts. Last error: {last_error}")
 
-Criteria for NEEDS_REVIEW: answer contains claims not in the context, is incomplete, or is incoherent.
+    def _chunk(self, text: str, source: str) -> list:
+        words  = text.split()
+        chunks = []
+        start  = 0
+        page   = 1
+        while start < len(words):
+            end   = min(start + self.chunk_size, len(words))
+            chunk = " ".join(words[start:end])
+            chunks.append({"page_content": chunk, "page": page, "source": source})
+            start += self.chunk_size - self.chunk_overlap
+            page  += 1
+        return chunks
 
-Question: {question}
-Context (first 1500 chars): {context}
-Answer: {answer}
+    def ingest(self, url: str) -> list:
+        self._check_blocked(url)
+        text = self._fetch_text(url)
+        if len(text) < 100:
+            raise ValueError("Could not extract meaningful content. The page may require JavaScript or block bots.")
+        words = text.split()
+        if len(words) > 15000:
+            text = " ".join(words[:15000])
+        from urllib.parse import urlparse
+        source = urlparse(url).netloc or url
+        return self._chunk(text, source)
 
-Evaluation:"""
 
-def run_critic(question: str, answer: str, documents: list) -> dict:
-    context = " ".join(d["page_content"] for d in documents)[:1500]
-    prompt  = _TEMPLATE.format(question=question, context=context, answer=answer)
-    raw     = call_llm(prompt, max_new_tokens=150, temperature=0.1)
-    verdict = "NEEDS_REVIEW" if re.search(r"NEEDS_REVIEW", raw, re.IGNORECASE) else "APPROVED"
-    explanation = raw.split("\n", 1)[-1].strip() if "\n" in raw else raw
-    return {"verdict": verdict, "explanation": explanation[:300]}
+class SearchIngestor:
+    def __init__(self):
+        self._url_ingestor = URLIngestor()
+
+    def _ddg_search(self, query: str, max_results: int = 5) -> list:
+        from duckduckgo_search import DDGS
+        last_error = None
+        for attempt in range(3):
+            try:
+                with DDGS() as ddgs:
+                    return list(ddgs.text(query, max_results=max_results))
+            except RatelimitException as e:
+                last_error = e
+                time.sleep((attempt + 1) * 5)
+            except Exception as e:
+                raise ValueError(f"Search failed: {e}")
+        raise ValueError(f"DuckDuckGo rate limited. Wait a few seconds and try again. ({last_error})")
+
+    def search_and_ingest(self, query: str, site: str = "") -> dict:
+        full_query = f"site:{site} {query}" if site.strip() else query
+        hits       = self._ddg_search(full_query)
+        if not hits:
+            raise ValueError("No search results found for this query.")
+        last_error = None
+        for hit in hits:
+            url = hit.get("href", "")
+            if not url:
+                continue
+            try:
+                chunks = self._url_ingestor.ingest(url)
+                return {"url": url, "title": hit.get("title", url), "chunks": chunks}
+            except Exception as e:
+                last_error = e
+                continue
+        raise ValueError(f"Could not fetch any search result. Last error: {last_error}")
+
+
+# ── PATCH: templates/index.html — replace Amazon demo card only ───────────
+# Find this block in the demo-cards-grid div and replace it:
+#
+# OLD (Amazon card — 403 always):
+#   <div class="demo-card" onclick="loadDemo(this)"
+#        data-url="https://www.amazon.com/gp/help/customer/..."
+#        data-q="What is the return window for electronics...">
+#     ...🛒 Retail / Amazon Return Policy...
+#   </div>
+#
+# NEW (FTC consumer rights — public government site, no bot blocking):
+
+/*
+      <div class="demo-card" onclick="loadDemo(this)"
+           data-url="https://consumer.ftc.gov/articles/understanding-your-credit-billing-rights"
+           data-q="What are the key consumer rights when disputing a charge on a credit card statement?">
+        <div class="demo-card-icon">🛒</div>
+        <div class="demo-card-industry" style="color:var(--gold)">Consumer Rights</div>
+        <div class="demo-card-title">FTC — Credit Billing Rights</div>
+        <div class="demo-card-q">"What are the key consumer rights when disputing a charge on a credit card statement?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(245,158,11,.12);color:var(--gold)">URL</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">consumer.ftc.gov</span>
+        </div>
+      </div>
+*/

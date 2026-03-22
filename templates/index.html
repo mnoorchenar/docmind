@@ -344,7 +344,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
     <div class="tab-panel active" id="ing-url">
       <div class="field">
         <label>Public URL</label>
-        <input type="text" id="url-input" placeholder="https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7" oninput="clearErr('ing-err')">
+        <input type="text" id="url-input" placeholder="https://en.wikipedia.org/wiki/Artificial_intelligence" oninput="clearErr('ing-err')">
       </div>
       <p style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Any publicly accessible web page. JavaScript-rendered pages may not work — prefer static HTML pages, Wikipedia articles, government sites, and documentation.</p>
       <button class="btn btn-primary" id="url-btn" onclick="runIngestURL()"><i class="fas fa-cloud-download-alt"></i> Fetch &amp; Index</button>
@@ -398,14 +398,16 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
     <div class="demo-section-title"><i class="fas fa-bolt" style="color:var(--gold)"></i> Quick Start — Industry Examples</div>
     <div class="demo-cards" id="demo-cards-grid">
 
-      <div class="demo-card" onclick="loadDemo(this)" data-url="https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7" data-q="What is the return window for electronics purchased on Amazon, and what conditions must be met?">
+      <div class="demo-card" onclick="loadDemo(this)"
+           data-url="https://consumer.ftc.gov/articles/understanding-your-credit-billing-rights"
+           data-q="What are the key consumer rights when disputing a charge on a credit card statement?">
         <div class="demo-card-icon">🛒</div>
-        <div class="demo-card-industry" style="color:var(--gold)">Retail</div>
-        <div class="demo-card-title">Amazon Return Policy</div>
-        <div class="demo-card-q">"What is the return window for electronics and what conditions must be met?"</div>
+        <div class="demo-card-industry" style="color:var(--gold)">Consumer Rights</div>
+        <div class="demo-card-title">FTC — Credit Billing Rights</div>
+        <div class="demo-card-q">"What are the key consumer rights when disputing a charge on a credit card statement?"</div>
         <div class="demo-card-meta">
           <span class="demo-card-tag" style="background:rgba(245,158,11,.12);color:var(--gold)">URL</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">amazon.com</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">consumer.ftc.gov</span>
         </div>
       </div>
 
