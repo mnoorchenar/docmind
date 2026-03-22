@@ -1,11 +1,14 @@
-import io, contextlib
+import io, contextlib, builtins
 
 _SAFE_BUILTINS = {
-    k: v for k, v in vars(__builtins__).items()
-    if k in {"print","range","len","sum","max","min","abs","round","sorted",
-             "list","dict","set","tuple","str","int","float","bool","enumerate",
-             "zip","map","filter","isinstance","type","repr","chr","ord"}
-} if isinstance(vars(__builtins__), dict) else {}
+    k: getattr(builtins, k)
+    for k in (
+        "print","range","len","sum","max","min","abs","round","sorted",
+        "list","dict","set","tuple","str","int","float","bool","enumerate",
+        "zip","map","filter","isinstance","type","repr","chr","ord"
+    )
+    if hasattr(builtins, k)
+}
 
 
 def run_code(code: str) -> str:
