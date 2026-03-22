@@ -1,19 +1,14 @@
-import re
-from agents.llm_factory import call_llm
-
-_TEMPLATE = """You are a document relevance grader. Rate how relevant this document is to the question.
-Respond with ONLY a decimal number between 0.0 (irrelevant) and 1.0 (highly relevant). Nothing else.
-
-Question: {question}
-Document excerpt: {document}
-
-Relevance score:"""
-
-def grade_document(question: str, document: str) -> float:
-    prompt = _TEMPLATE.format(question=question, document=document[:800])
-    raw    = call_llm(prompt, max_new_tokens=10, temperature=0.05)
-    nums   = re.findall(r"[0-9]+\.?[0-9]*", raw)
-    return min(float(nums[0]), 1.0) if nums else 0.5
-
 def run_grader(question: str, documents: list) -> list:
-    return [{**doc, "grade": grade_document(question, doc["page_content"])} for doc in documents]
+    """
+    Score-based grader — no LLM call needed.
+    The hybrid search score already reflects relevance; normalise to 0-1.
+    """
+    q_words = set(question.lower().split())
+    graded  = []
+    for doc in documents:
+        base  = min(doc.get("score", 0.3) * 3, 1.0)          # hybrid-search score → 0-1
+        words = set(doc.get("page_content", "").lower().split())
+        overlap = len(q_words & words) / max(len(q_words), 1)  # keyword overlap boost
+        grade = min(base * 0.7 + overlap * 0.3, 1.0)
+        graded.append({**doc, "grade": round(grade, 3)})
+    return graded

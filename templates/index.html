@@ -175,30 +175,44 @@ async function ask(){
   document.getElementById('q-err').textContent='';
   if(!q){document.getElementById('q-err').textContent='Please enter a question.';return;}
   document.getElementById('trace-wrap').style.display='';
-  document.getElementById('trace-log').innerHTML='<div class="t-step"><span class="t-msg" style="color:var(--muted)">Starting agents...</span></div>';
+  document.getElementById('trace-log').innerHTML='<div class="t-step"><span class="t-msg" style="color:var(--muted)">Starting agents…</span></div>';
   document.getElementById('answer-wrap').style.display='none';
   document.getElementById('ask-btn').disabled=true;
   seen=0;clearInterval(pollTimer);
   try{
     const r=await fetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
     const d=await r.json();
-    if(d.error){document.getElementById('q-err').textContent=d.error;document.getElementById('ask-btn').disabled=false;return;}
-    pollTimer=setInterval(()=>poll(d.query_id),2000);
-  }catch(e){document.getElementById('q-err').textContent=e.message;document.getElementById('ask-btn').disabled=false;}
+    if(d.error){
+      traceErr(d.error);
+      document.getElementById('ask-btn').disabled=false;
+      return;
+    }
+    pollTimer=setInterval(()=>poll(d.query_id),1500);
+  }catch(e){
+    traceErr('Network error: '+e.message);
+    document.getElementById('ask-btn').disabled=false;
+  }
 }
 
 async function poll(qid){
   try{
     const r=await fetch('/api/trace/'+qid);
+    if(!r.ok){traceErr('Server error '+r.status);clearInterval(pollTimer);document.getElementById('ask-btn').disabled=false;return;}
     const d=await r.json();
     rt(d.trace||[]);
     if(['complete','error'].includes(d.status)){
       clearInterval(pollTimer);
       document.getElementById('ask-btn').disabled=false;
-      if(d.status==='complete'&&d.result)ra(d.result);
-      else if(d.status==='error'&&d.result)document.getElementById('q-err').textContent=d.result.error||'An error occurred.';
+      if(d.status==='complete'&&d.result) ra(d.result);
+      else if(d.status==='error'&&d.result) traceErr(d.result.error||'An error occurred.');
     }
-  }catch(e){}
+  }catch(e){traceErr('Poll error: '+e.message);clearInterval(pollTimer);document.getElementById('ask-btn').disabled=false;}
+}
+
+function traceErr(msg){
+  const log=document.getElementById('trace-log');
+  log.innerHTML+='<div class="t-step"><span class="t-badge" style="background:rgba(239,68,68,.15);color:var(--red)">error</span><span class="t-msg" style="color:var(--red)">'+esc(msg)+'</span></div>';
+  log.scrollTop=log.scrollHeight;
 }
 
 function rt(steps){
