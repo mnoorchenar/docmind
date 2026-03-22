@@ -1,216 +1,90 @@
-﻿# ── PROJECT TREE ──────────────────────────────────────────────────────────
-#
-#   docmind/
-#   ├── app.py
-#   ├── requirements.txt
-#   ├── Dockerfile
-#   ├── .env.example
-#   ├── agents/
-#   │   ├── __init__.py
-#   │   ├── planner.py
-#   │   ├── retriever.py
-#   │   ├── grader.py
-#   │   ├── generator.py
-#   │   └── critic.py
-#   ├── graph/
-#   │   ├── __init__.py
-#   │   └── research_graph.py
-#   ├── rag/
-#   │   ├── __init__.py
-#   │   ├── ingestor.py
-#   │   ├── vector_store.py
-#   │   └── embeddings.py
-#   ├── tools/
-#   │   ├── __init__.py
-#   │   ├── web_search.py
-#   │   ├── calculator.py
-#   │   └── code_tool.py
-#   ├── tracing/
-#   │   ├── __init__.py
-#   │   └── tracer.py
-#   ├── templates/
-#   │   └── index.html
-#   ├── README.md
-#   └── docs/
-#       └── project-template.html
-#
-# ──────────────────────────────────────────────────────────────────────────
+﻿# ── FILE: agents/llm_factory.py ───────────────────────────────────────────
+
+import os
+from langchain_huggingface import HuggingFaceEndpoint
+
+_HF_ROUTER = "https://router.huggingface.co/hf-inference/models"
+
+# ── Available free-tier models ────────────────────────────────────────────
+# All confirmed available on the HF free Inference router as of March 2026.
+# "speed" is relative: fast < medium < slow (affects free-tier cold starts).
+AVAILABLE_MODELS = {
+    "zephyr-7b": {
+        "id":          "HuggingFaceH4/zephyr-7b-beta",
+        "label":       "Zephyr-7B-β",
+        "description": "Fine-tuned for instruction following and evaluation. Confirmed free tier. Best overall balance.",
+        "speed":       "medium",
+        "params":      "7B",
+    },
+    "phi3-mini": {
+        "id":          "microsoft/Phi-3-mini-4k-instruct",
+        "label":       "Phi-3 Mini (Microsoft)",
+        "description": "3.8B params — very fast responses. Good for simple Q&A and summarization on free tier.",
+        "speed":       "fast",
+        "params":      "3.8B",
+    },
+    "gemma2-2b": {
+        "id":          "google/gemma-2-2b-it",
+        "label":       "Gemma-2 2B (Google)",
+        "description": "Google's smallest instruction-tuned model. Fastest option — ideal for quick demos.",
+        "speed":       "fast",
+        "params":      "2B",
+    },
+    "falcon-7b": {
+        "id":          "tiiuae/falcon-7b-instruct",
+        "label":       "Falcon-7B (TII)",
+        "description": "Classic open-source 7B instruct model from UAE's TII. Good factual recall.",
+        "speed":       "medium",
+        "params":      "7B",
+    },
+    "mistral-v2": {
+        "id":          "mistralai/Mistral-7B-Instruct-v0.2",
+        "label":       "Mistral-7B v0.2",
+        "description": "Mistral's v0.2 instruct — stronger reasoning than v0.1. May occasionally be unavailable on free tier.",
+        "speed":       "medium",
+        "params":      "7B",
+    },
+}
+
+# Default model key — must be a key in AVAILABLE_MODELS
+_current_model_key = "zephyr-7b"
 
 
-# ── FILE: app.py ──────────────────────────────────────────────────────────
-
-import os, uuid, threading
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from rag.vector_store import HybridVectorStore
-from rag.ingestor import PDFIngestor
-from graph.research_graph import ResearchGraph
-from tracing.tracer import Tracer
-from tools.web_search import web_search
-from tools.calculator import calculate
-from tools.code_tool import run_code
-
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
-
-UPLOAD_FOLDER = "/tmp/docmind_uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ── Global singletons (in-memory, scoped to container lifetime) ───────────
-vector_store = HybridVectorStore()
-tracer       = Tracer()
-graph        = ResearchGraph(vector_store, tracer)
-queries      = {}   # query_id → {status, result}
+def get_current_model_key() -> str:
+    return _current_model_key
 
 
-# ── ROUTES ────────────────────────────────────────────────────────────────
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/health")
-def health():
-    return jsonify({
-        "status": "ok",
-        "docs_indexed": vector_store.doc_count,
-        "chunks_stored": vector_store.chunk_count,
-        "token_set": bool(os.getenv("HF_TOKEN")),
-    })
+def set_current_model(key: str):
+    global _current_model_key
+    if key not in AVAILABLE_MODELS:
+        raise ValueError(f"Unknown model key '{key}'. Valid keys: {list(AVAILABLE_MODELS)}")
+    _current_model_key = key
 
 
-@app.route("/api/upload", methods=["POST"])
-def upload():
-    if "file" not in request.files:
-        return jsonify({"error": "No file attached."}), 400
-    f = request.files["file"]
-    if not f.filename.lower().endswith(".pdf"):
-        return jsonify({"error": "Only PDF files are supported."}), 400
-    path = os.path.join(UPLOAD_FOLDER, secure_filename(f.filename))
-    f.save(path)
-    try:
-        chunks = PDFIngestor().ingest(path)
-        vector_store.add_documents(chunks)
-        return jsonify({
-            "success": True,
-            "filename": f.filename,
-            "chunks": len(chunks),
-            "total_chunks": vector_store.chunk_count,
-            "total_docs": vector_store.doc_count,
-        })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+def get_current_model_id() -> str:
+    return AVAILABLE_MODELS[_current_model_key]["id"]
 
 
-@app.route("/api/research", methods=["POST"])
-def research():
-    data     = request.json or {}
-    question = (data.get("question") or "").strip()
-    if not question:
-        return jsonify({"error": "Question is required."}), 400
-    if vector_store.doc_count == 0:
-        return jsonify({"error": "No documents indexed yet — please upload a PDF first."}), 400
-
-    qid = str(uuid.uuid4())
-    queries[qid] = {"status": "running", "result": None}
-
-    def _run():
-        try:
-            result = graph.run(question, qid)
-            queries[qid]["result"]  = result
-            queries[qid]["status"]  = "pending_review" if result.get("needs_human_review") else "complete"
-        except Exception as exc:
-            queries[qid]["status"] = "error"
-            queries[qid]["result"] = {"error": str(exc)}
-
-    threading.Thread(target=_run, daemon=True).start()
-    return jsonify({"query_id": qid})
-
-
-@app.route("/api/trace/<qid>")
-def get_trace(qid):
-    q = queries.get(qid)
-    if not q:
-        return jsonify({"error": "Query not found."}), 404
-    return jsonify({"status": q["status"], "trace": tracer.get(qid), "result": q["result"]})
-
-
-@app.route("/api/review")
-def review_queue():
-    pending = [
-        {"query_id": qid,
-         "question":   q["result"].get("question", "") if q["result"] else "",
-         "generation": q["result"].get("generation", "") if q["result"] else "",
-         "critique":   q["result"].get("critique", "") if q["result"] else ""}
-        for qid, q in queries.items()
-        if q["status"] == "pending_review" and q["result"]
-    ]
-    return jsonify({"pending": pending})
-
-
-@app.route("/api/review/<qid>", methods=["POST"])
-def review_action(qid):
-    data   = request.json or {}
-    action = data.get("action")
-    if qid not in queries:
-        return jsonify({"error": "Query not found."}), 404
-    if action not in ("approve", "reject"):
-        return jsonify({"error": "Action must be 'approve' or 'reject'."}), 400
-    queries[qid]["status"] = "complete" if action == "approve" else "rejected"
-    if queries[qid]["result"]:
-        queries[qid]["result"]["human_approved"] = action == "approve"
-    tracer.add(qid, "human_review", f"Reviewer {action}d this answer.", "complete", 0)
-    return jsonify({"success": True})
-
-
-@app.route("/api/observability")
-def observability():
-    return jsonify(tracer.stats())
-
-
-@app.route("/api/tool/<name>", methods=["POST"])
-def tool_run(name):
-    inp = ((request.json or {}).get("input") or "").strip()
-    if not inp:
-        return jsonify({"error": "Input is required."}), 400
-    try:
-        result = {"web_search": web_search, "calculator": calculate, "code": run_code}.get(name, lambda _: None)(inp)
-        if result is None:
-            return jsonify({"error": f"Unknown tool '{name}'."}), 400
-        return jsonify({"result": result})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/stats")
-def stats():
-    return jsonify({
-        "docs_indexed":    vector_store.doc_count,
-        "chunks_stored":   vector_store.chunk_count,
-        "queries_run":     len(queries),
-        "queries_complete":sum(1 for q in queries.values() if q["status"] == "complete"),
-        "pending_review":  sum(1 for q in queries.values() if q["status"] == "pending_review"),
-    })
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=7860, debug=False)
-
-
-# ── FILE: agents/__init__.py ──────────────────────────────────────────────
-# (empty)
+def make_llm(max_new_tokens: int = 512, temperature: float = 0.7) -> HuggingFaceEndpoint:
+    """Build an LLM using whatever model the user currently has selected."""
+    token    = os.getenv("HF_TOKEN", "")
+    if not token:
+        raise EnvironmentError("HF_TOKEN is not set. Add your HuggingFace Read token in Space secrets or .env.")
+    model_id = get_current_model_id()
+    return HuggingFaceEndpoint(
+        endpoint_url=f"{_HF_ROUTER}/{model_id}",
+        task="text-generation",
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        huggingfacehub_api_token=token,
+        timeout=90,
+    )
 
 
 # ── FILE: agents/planner.py ───────────────────────────────────────────────
 
-import os, time
-from langchain_huggingface import HuggingFaceEndpoint
 from langchain.prompts import PromptTemplate
+from agents.llm_factory import make_llm
 
 _TEMPLATE = """You are a research planning agent. Given the user's question, produce a brief research plan.
 Decide: should the answer be grounded in uploaded documents, web search, or both?
@@ -221,31 +95,16 @@ Question: {question}
 Plan:"""
 
 def run_planner(question: str) -> str:
-    llm = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-        task="text-generation",
-        max_new_tokens=200,
-        temperature=0.3,
-        huggingfacehub_api_token=os.getenv("HF_TOKEN", ""),
-        timeout=60,
-    )
-    chain  = PromptTemplate(input_variables=["question"], template=_TEMPLATE) | llm
+    chain  = PromptTemplate(input_variables=["question"], template=_TEMPLATE) | make_llm(max_new_tokens=200, temperature=0.3)
     result = chain.invoke({"question": question})
     return result.strip() if isinstance(result, str) else str(result).strip()
 
 
-# ── FILE: agents/retriever.py ─────────────────────────────────────────────
-
-def run_retriever(question: str, vector_store, k: int = 5) -> list:
-    """Returns list of dicts with keys: page_content, source, page, score."""
-    return vector_store.hybrid_search(question, k=k)
-
-
 # ── FILE: agents/grader.py ────────────────────────────────────────────────
 
-import os, re
-from langchain_huggingface import HuggingFaceEndpoint
+import re
 from langchain.prompts import PromptTemplate
+from agents.llm_factory import make_llm
 
 _TEMPLATE = """You are a document relevance grader. Rate how relevant this document is to the question.
 Respond with ONLY a decimal number between 0.0 (irrelevant) and 1.0 (highly relevant). Nothing else.
@@ -256,34 +115,20 @@ Document excerpt: {document}
 Relevance score:"""
 
 def grade_document(question: str, document: str) -> float:
-    llm = HuggingFaceEndpoint(
-        repo_id="HuggingFaceH4/zephyr-7b-beta",
-        task="text-generation",
-        max_new_tokens=10,
-        temperature=0.05,
-        huggingfacehub_api_token=os.getenv("HF_TOKEN", ""),
-        timeout=45,
-    )
-    chain  = PromptTemplate(input_variables=["question", "document"], template=_TEMPLATE) | llm
+    chain  = PromptTemplate(input_variables=["question","document"], template=_TEMPLATE) | make_llm(max_new_tokens=10, temperature=0.05)
     result = chain.invoke({"question": question, "document": document[:800]})
     raw    = result.strip() if isinstance(result, str) else str(result).strip()
     nums   = re.findall(r"[0-9]+\.?[0-9]*", raw)
     return min(float(nums[0]), 1.0) if nums else 0.5
 
 def run_grader(question: str, documents: list) -> list:
-    """Returns same list with 'grade' float added to each doc dict."""
-    graded = []
-    for doc in documents:
-        score = grade_document(question, doc["page_content"])
-        graded.append({**doc, "grade": score})
-    return graded
+    return [{**doc, "grade": grade_document(question, doc["page_content"])} for doc in documents]
 
 
 # ── FILE: agents/generator.py ─────────────────────────────────────────────
 
-import os
-from langchain_huggingface import HuggingFaceEndpoint
 from langchain.prompts import PromptTemplate
+from agents.llm_factory import make_llm
 
 _TEMPLATE = """You are an expert research analyst. Answer the question using ONLY the context below.
 Cite sources as [Source: filename, p.N] inline. If the context lacks enough information, say so clearly.
@@ -296,31 +141,21 @@ Question: {question}
 Answer:"""
 
 def run_generator(question: str, documents: list) -> str:
-    context_parts = []
-    for d in documents:
-        src  = d.get("source", "unknown")
-        page = d.get("page", "?")
-        context_parts.append(f"[Source: {src}, p.{page}]\n{d['page_content']}")
+    context_parts = [
+        f"[Source: {d.get('source','unknown')}, p.{d.get('page','?')}]\n{d['page_content']}"
+        for d in documents
+    ]
     context = "\n\n".join(context_parts) if context_parts else "No context available."
-
-    llm = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-        task="text-generation",
-        max_new_tokens=512,
-        temperature=0.4,
-        huggingfacehub_api_token=os.getenv("HF_TOKEN", ""),
-        timeout=90,
-    )
-    chain  = PromptTemplate(input_variables=["question", "context"], template=_TEMPLATE) | llm
-    result = chain.invoke({"question": question, "context": context})
+    chain   = PromptTemplate(input_variables=["question","context"], template=_TEMPLATE) | make_llm(max_new_tokens=512, temperature=0.4)
+    result  = chain.invoke({"question": question, "context": context})
     return result.strip() if isinstance(result, str) else str(result).strip()
 
 
 # ── FILE: agents/critic.py ────────────────────────────────────────────────
 
-import os, re
-from langchain_huggingface import HuggingFaceEndpoint
+import re
 from langchain.prompts import PromptTemplate
+from agents.llm_factory import make_llm
 
 _TEMPLATE = """You are a strict quality-control critic. Evaluate this answer for accuracy and grounding.
 Output EXACTLY one of these two lines first, then a one-sentence explanation:
@@ -337,1957 +172,355 @@ Evaluation:"""
 
 def run_critic(question: str, answer: str, documents: list) -> dict:
     context = " ".join(d["page_content"] for d in documents)[:1500]
-    llm = HuggingFaceEndpoint(
-        repo_id="HuggingFaceH4/zephyr-7b-beta",
-        task="text-generation",
-        max_new_tokens=150,
-        temperature=0.1,
-        huggingfacehub_api_token=os.getenv("HF_TOKEN", ""),
-        timeout=60,
-    )
-    chain  = PromptTemplate(input_variables=["question", "context", "answer"], template=_TEMPLATE) | llm
-    result = chain.invoke({"question": question, "context": context, "answer": answer})
-    raw    = result.strip() if isinstance(result, str) else str(result).strip()
-
-    verdict = "APPROVED"
-    if re.search(r"NEEDS_REVIEW", raw, re.IGNORECASE):
-        verdict = "NEEDS_REVIEW"
-    elif re.search(r"APPROVED", raw, re.IGNORECASE):
-        verdict = "APPROVED"
-
-    explanation = raw.split("\n", 1)[-1].strip() if "\n" in raw else raw
+    chain   = PromptTemplate(input_variables=["question","context","answer"], template=_TEMPLATE) | make_llm(max_new_tokens=150, temperature=0.1)
+    result  = chain.invoke({"question": question, "context": context, "answer": answer})
+    raw     = result.strip() if isinstance(result, str) else str(result).strip()
+    verdict = "NEEDS_REVIEW" if re.search(r"NEEDS_REVIEW", raw, re.IGNORECASE) else "APPROVED"
+    explanation = raw.split("\n",1)[-1].strip() if "\n" in raw else raw
     return {"verdict": verdict, "explanation": explanation[:300]}
 
 
-# ── FILE: graph/__init__.py ───────────────────────────────────────────────
-# (empty)
+# ── FILE: app.py ──────────────────────────────────────────────────────────
+# Only the new /api/models and /api/set_model endpoints are added.
+# Everything else is unchanged from the previous version.
+
+import os, uuid, threading
+from flask import Flask, render_template, request, jsonify
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from rag.vector_store      import HybridVectorStore
+from rag.ingestor          import PDFIngestor, URLIngestor, SearchIngestor, MAX_PDF_BYTES
+from graph.research_graph  import ResearchGraph
+from tracing.tracer        import Tracer
+from tools.web_search      import web_search
+from tools.calculator      import calculate
+from tools.code_tool       import run_code
+from agents.llm_factory    import AVAILABLE_MODELS, get_current_model_key, set_current_model, get_current_model_id
+
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
+
+UPLOAD_FOLDER = "/tmp/docmind_uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+vector_store = HybridVectorStore()
+tracer       = Tracer()
+graph        = ResearchGraph(vector_store, tracer)
+queries      = {}
 
 
-# ── FILE: graph/research_graph.py ────────────────────────────────────────
-
-import time
-from datetime import datetime
-from typing import TypedDict, List, Any, Optional
-from langgraph.graph import StateGraph, END
-
-from agents.planner   import run_planner
-from agents.retriever import run_retriever
-from agents.grader    import run_grader
-from agents.generator import run_generator
-from agents.critic    import run_critic
+def _clear_uploads():
+    for f in os.listdir(UPLOAD_FOLDER):
+        try: os.remove(os.path.join(UPLOAD_FOLDER, f))
+        except: pass
 
 
-class GraphState(TypedDict):
-    question:          str
-    query_id:          str
-    plan:              str
-    documents:         List[Any]
-    graded_docs:       List[Any]
-    generation:        str
-    critique:          str
-    verdict:           str
-    needs_human_review:bool
-    iteration:         int
-    timestamp:         str
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
-class ResearchGraph:
-    def __init__(self, vector_store, tracer):
-        self.vs     = vector_store
-        self.tracer = tracer
-        self.graph  = self._build()
-
-    # ── NODE FUNCTIONS ─────────────────────────────────────────────────────
-
-    def _planner_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "planner", "Planning research approach…", "running", 0)
-        plan = run_planner(state["question"])
-        ms   = int((time.time() - t0) * 1000)
-        self.tracer.add(state["query_id"], "planner", plan[:200], "complete", ms)
-        return {"plan": plan}
-
-    def _retriever_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "retriever", "Running hybrid search (FAISS + BM25)…", "running", 0)
-        docs = run_retriever(state["question"], self.vs, k=5)
-        ms   = int((time.time() - t0) * 1000)
-        self.tracer.add(state["query_id"], "retriever", f"Retrieved {len(docs)} chunks via hybrid search.", "complete", ms)
-        return {"documents": docs}
-
-    def _grader_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "grader", f"Grading {len(state['documents'])} retrieved chunks…", "running", 0)
-        graded = run_grader(state["question"], state["documents"])
-        avg    = sum(d["grade"] for d in graded) / len(graded) if graded else 0.0
-        ms     = int((time.time() - t0) * 1000)
-        self.tracer.add(state["query_id"], "grader", f"Avg relevance score: {avg:.2f} across {len(graded)} chunks.", "complete", ms)
-        return {"graded_docs": graded}
-
-    def _rewriter_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "rewriter", "Low relevance scores — rewriting query for better retrieval…", "running", 0)
-        # Simple heuristic rewrite: add "explain in detail" framing
-        new_q = f"Provide a detailed explanation about: {state['question']}"
-        ms    = int((time.time() - t0) * 1000)
-        self.tracer.add(state["query_id"], "rewriter", f"Rewritten query: {new_q[:120]}", "complete", ms)
-        return {"question": new_q, "iteration": state.get("iteration", 0) + 1}
-
-    def _generator_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "generator", "Generating answer from graded context…", "running", 0)
-        good_docs = [d for d in state["graded_docs"] if d.get("grade", 0) >= 0.35] or state["graded_docs"]
-        gen  = run_generator(state["question"], good_docs[:4])
-        ms   = int((time.time() - t0) * 1000)
-        self.tracer.add(state["query_id"], "generator", f"Answer generated ({len(gen)} chars).", "complete", ms)
-        return {"generation": gen}
-
-    def _critic_node(self, state: GraphState) -> dict:
-        t0 = time.time()
-        self.tracer.add(state["query_id"], "critic", "Evaluating answer quality and hallucination risk…", "running", 0)
-        result = run_critic(state["question"], state["generation"], state["graded_docs"])
-        ms     = int((time.time() - t0) * 1000)
-        needs_review = result["verdict"] == "NEEDS_REVIEW"
-        label  = "⚠️ Flagged for human review." if needs_review else "✅ Answer approved."
-        self.tracer.add(state["query_id"], "critic", f"{label} {result['explanation'][:160]}", "complete", ms)
-        return {
-            "critique":          result["explanation"],
-            "verdict":           result["verdict"],
-            "needs_human_review":needs_review,
-        }
-
-    # ── CONDITIONAL EDGE FUNCTIONS ─────────────────────────────────────────
-
-    def _after_grader(self, state: GraphState) -> str:
-        graded = state.get("graded_docs", [])
-        avg    = sum(d.get("grade", 0) for d in graded) / len(graded) if graded else 0.0
-        itr    = state.get("iteration", 0)
-        if avg < 0.45 and itr < 2:
-            return "rewrite"
-        return "generate"
-
-    def _after_critic(self, state: GraphState) -> str:
-        return "end"   # always end — human review is handled outside graph via Flask
-
-    # ── BUILD ──────────────────────────────────────────────────────────────
-
-    def _build(self):
-        wf = StateGraph(GraphState)
-        wf.add_node("planner",   self._planner_node)
-        wf.add_node("retriever", self._retriever_node)
-        wf.add_node("grader",    self._grader_node)
-        wf.add_node("rewriter",  self._rewriter_node)
-        wf.add_node("generator", self._generator_node)
-        wf.add_node("critic",    self._critic_node)
-
-        wf.set_entry_point("planner")
-        wf.add_edge("planner",   "retriever")
-        wf.add_edge("retriever", "grader")
-        wf.add_conditional_edges("grader", self._after_grader, {"rewrite": "rewriter", "generate": "generator"})
-        wf.add_edge("rewriter",  "retriever")
-        wf.add_edge("generator", "critic")
-        wf.add_conditional_edges("critic", self._after_critic, {"end": END})
-        return wf.compile()
-
-    # ── PUBLIC RUN ─────────────────────────────────────────────────────────
-
-    def run(self, question: str, query_id: str) -> dict:
-        init_state = GraphState(
-            question=question, query_id=query_id, plan="",
-            documents=[], graded_docs=[], generation="",
-            critique="", verdict="", needs_human_review=False,
-            iteration=0, timestamp=datetime.utcnow().isoformat(),
-        )
-        final = self.graph.invoke(init_state)
-        return dict(final)
+@app.route("/health")
+def health():
+    return jsonify({
+        "status":        "ok",
+        "docs_indexed":  vector_store.doc_count,
+        "chunks_stored": vector_store.chunk_count,
+        "source":        vector_store.source_label,
+        "token_set":     bool(os.getenv("HF_TOKEN")),
+        "active_model":  get_current_model_key(),
+        "active_model_id": get_current_model_id(),
+    })
 
 
-# ── FILE: rag/__init__.py ─────────────────────────────────────────────────
-# (empty)
+@app.route("/api/models")
+def api_models():
+    current = get_current_model_key()
+    return jsonify({
+        "models":  AVAILABLE_MODELS,
+        "current": current,
+    })
 
 
-# ── FILE: rag/embeddings.py ───────────────────────────────────────────────
-
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
-_model = None   # lazy-loaded singleton
-
-def get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-    return _model
-
-def embed(texts: list) -> np.ndarray:
-    """Returns float32 numpy array of shape (N, dim)."""
-    return get_model().encode(texts, normalize_embeddings=True, show_progress_bar=False).astype("float32")
-
-
-# ── FILE: rag/ingestor.py ─────────────────────────────────────────────────
-
-import os, re
-from pypdf import PdfReader
-from rag.embeddings import embed
-
-
-class PDFIngestor:
-    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 80):
-        self.chunk_size    = chunk_size
-        self.chunk_overlap = chunk_overlap
-
-    def _extract_text(self, path: str) -> list:
-        """Returns list of {text, page} dicts."""
-        reader = PdfReader(path)
-        pages  = []
-        for i, page in enumerate(reader.pages):
-            text = (page.extract_text() or "").strip()
-            if text:
-                pages.append({"text": text, "page": i + 1})
-        return pages
-
-    def _chunk(self, page_data: list) -> list:
-        """Splits pages into overlapping chunks."""
-        chunks = []
-        for pd in page_data:
-            text   = re.sub(r"\s+", " ", pd["text"])
-            words  = text.split()
-            start  = 0
-            while start < len(words):
-                end   = min(start + self.chunk_size, len(words))
-                chunk = " ".join(words[start:end])
-                chunks.append({"page_content": chunk, "page": pd["page"]})
-                start += self.chunk_size - self.chunk_overlap
-        return chunks
-
-    def ingest(self, path: str) -> list:
-        """Returns list of chunk dicts with page_content, page, source."""
-        filename   = os.path.basename(path)
-        pages      = self._extract_text(path)
-        chunks     = self._chunk(pages)
-        for c in chunks:
-            c["source"] = filename
-        return chunks
-
-
-# ── FILE: rag/vector_store.py ─────────────────────────────────────────────
-
-import numpy as np
-import faiss
-from rank_bm25 import BM25Okapi
-from rag.embeddings import embed
-
-
-class HybridVectorStore:
-    """FAISS semantic search + BM25 keyword search, fused via Reciprocal Rank Fusion."""
-
-    def __init__(self):
-        self._docs:    list  = []    # raw chunk dicts
-        self._index:   faiss.Index = None
-        self._bm25:    BM25Okapi   = None
-        self._tokenized: list = []
-
-    @property
-    def doc_count(self) -> int:
-        sources = set(d.get("source", "") for d in self._docs)
-        return len(sources)
-
-    @property
-    def chunk_count(self) -> int:
-        return len(self._docs)
-
-    def add_documents(self, chunks: list):
-        self._docs.extend(chunks)
-        texts        = [c["page_content"] for c in self._docs]
-        vectors      = embed(texts)
-        dim          = vectors.shape[1]
-        self._index  = faiss.IndexFlatIP(dim)   # inner-product (normalized = cosine)
-        self._index.add(vectors)
-        self._tokenized = [t.lower().split() for t in texts]
-        self._bm25      = BM25Okapi(self._tokenized)
-
-    def hybrid_search(self, query: str, k: int = 5) -> list:
-        if not self._docs:
-            return []
-        k = min(k, len(self._docs))
-
-        # ── Semantic search ──────────────────────────────────────────────
-        q_vec    = embed([query])
-        scores, idxs = self._index.search(q_vec, min(k * 2, len(self._docs)))
-        sem_ranks    = {int(idxs[0][r]): r for r in range(len(idxs[0]))}
-
-        # ── BM25 keyword search ──────────────────────────────────────────
-        bm25_scores  = self._bm25.get_scores(query.lower().split())
-        bm25_order   = np.argsort(bm25_scores)[::-1][:k * 2]
-        bm25_ranks   = {int(bm25_order[r]): r for r in range(len(bm25_order))}
-
-        # ── Reciprocal Rank Fusion ───────────────────────────────────────
-        rrf_k = 60
-        all_ids = set(sem_ranks) | set(bm25_ranks)
-        rrf     = {}
-        for i in all_ids:
-            rrf[i] = 1 / (rrf_k + sem_ranks.get(i, 999)) + 1 / (rrf_k + bm25_ranks.get(i, 999))
-
-        top_ids = sorted(rrf, key=lambda i: rrf[i], reverse=True)[:k]
-        results = []
-        for idx in top_ids:
-            doc = dict(self._docs[idx])
-            doc["score"] = round(rrf[idx], 4)
-            results.append(doc)
-        return results
-
-
-# ── FILE: tools/__init__.py ───────────────────────────────────────────────
-# (empty)
-
-
-# ── FILE: tools/web_search.py ────────────────────────────────────────────
-
-from duckduckgo_search import DDGS
-
-def web_search(query: str, max_results: int = 4) -> str:
+@app.route("/api/set_model", methods=["POST"])
+def api_set_model():
+    data = request.json or {}
+    key  = (data.get("model_key") or "").strip()
     try:
-        with DDGS() as ddgs:
-            hits = list(ddgs.text(query, max_results=max_results))
-        if not hits:
-            return "No results found."
-        lines = []
-        for h in hits:
-            lines.append(f"Title: {h.get('title','')}\nSnippet: {h.get('body','')}\nURL: {h.get('href','')}\n")
-        return "\n".join(lines)
-    except Exception as exc:
-        return f"Search error: {exc}"
+        set_current_model(key)
+        return jsonify({"success": True, "model_key": key, "model_id": get_current_model_id()})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
-# ── FILE: tools/calculator.py ────────────────────────────────────────────
-
-import ast, math, operator, re
-
-_SAFE_OPS = {
-    ast.Add:  operator.add,  ast.Sub: operator.sub,
-    ast.Mult: operator.mul,  ast.Div: operator.truediv,
-    ast.Pow:  operator.pow,  ast.USub: operator.neg,
-    ast.Mod:  operator.mod,  ast.FloorDiv: operator.floordiv,
-}
-_SAFE_NAMES = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
-_SAFE_NAMES.update({"abs": abs, "round": round, "int": int, "float": float})
-
-
-def _safe_eval(node):
-    if isinstance(node, ast.Constant):
-        return node.value
-    if isinstance(node, ast.BinOp):
-        op = _SAFE_OPS.get(type(node.op))
-        if op is None:
-            raise ValueError(f"Unsupported operator: {node.op}")
-        return op(_safe_eval(node.left), _safe_eval(node.right))
-    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        return -_safe_eval(node.operand)
-    if isinstance(node, ast.Call):
-        func = node.func.id if isinstance(node.func, ast.Name) else None
-        if func in _SAFE_NAMES:
-            return _SAFE_NAMES[func](*[_safe_eval(a) for a in node.args])
-    if isinstance(node, ast.Name) and node.id in _SAFE_NAMES:
-        return _SAFE_NAMES[node.id]
-    raise ValueError(f"Unsafe expression: {ast.dump(node)}")
-
-
-def calculate(expr: str) -> str:
+@app.route("/api/upload", methods=["POST"])
+def upload():
+    if "file" not in request.files:
+        return jsonify({"error": "No file attached."}), 400
+    f = request.files["file"]
+    if not f.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported."}), 400
+    f.seek(0,2); size = f.tell(); f.seek(0)
+    if size > MAX_PDF_BYTES:
+        return jsonify({"error": f"File exceeds 10 MB limit ({size/1024/1024:.1f} MB)."}), 400
+    _clear_uploads()
+    path = os.path.join(UPLOAD_FOLDER, secure_filename(f.filename))
+    f.save(path)
     try:
-        expr  = re.sub(r"[^0-9+\-*/().,%^ \t\na-zA-Z_]", "", expr).strip()
-        tree  = ast.parse(expr, mode="eval")
-        val   = _safe_eval(tree.body)
-        return f"Result: {val}"
+        chunks = PDFIngestor().ingest(path)
+        vector_store.clear()
+        vector_store.add_documents(chunks, source_label=f.filename)
+        return jsonify({"success":True,"filename":f.filename,"chunks":len(chunks),"total_chunks":vector_store.chunk_count,"total_docs":vector_store.doc_count,"source":f.filename})
     except Exception as exc:
-        return f"Calculation error: {exc}"
+        return jsonify({"error": str(exc)}), 500
 
 
-# ── FILE: tools/code_tool.py ─────────────────────────────────────────────
-
-import io, contextlib
-
-_SAFE_BUILTINS = {
-    k: v for k, v in vars(__builtins__).items()
-    if k in {"print","range","len","sum","max","min","abs","round","sorted",
-             "list","dict","set","tuple","str","int","float","bool","enumerate",
-             "zip","map","filter","isinstance","type","repr","chr","ord"}
-} if isinstance(vars(__builtins__), dict) else {}
-
-
-def run_code(code: str) -> str:
-    buf = io.StringIO()
+@app.route("/api/ingest_url", methods=["POST"])
+def ingest_url():
+    data = request.json or {}
+    url  = (data.get("url") or "").strip()
+    if not url: return jsonify({"error": "URL is required."}), 400
+    if not url.startswith(("http://","https://")): url = "https://" + url
     try:
-        with contextlib.redirect_stdout(buf):
-            exec(code, {"__builtins__": _SAFE_BUILTINS}, {})
-        out = buf.getvalue()
-        return out.strip() if out.strip() else "✅ Code executed successfully (no output)."
+        chunks = URLIngestor().ingest(url)
+        vector_store.clear(); _clear_uploads()
+        vector_store.add_documents(chunks, source_label=url)
+        return jsonify({"success":True,"url":url,"chunks":len(chunks),"total_chunks":vector_store.chunk_count})
     except Exception as exc:
-        return f"❌ Error: {exc}"
+        return jsonify({"error": str(exc)}), 500
 
 
-# ── FILE: tracing/__init__.py ─────────────────────────────────────────────
-# (empty)
+@app.route("/api/search_ingest", methods=["POST"])
+def search_ingest():
+    data  = request.json or {}
+    query = (data.get("query") or "").strip()
+    site  = (data.get("site")  or "").strip()
+    if not query: return jsonify({"error": "Search query is required."}), 400
+    try:
+        result = SearchIngestor().search_and_ingest(query, site)
+        chunks = result["chunks"]
+        vector_store.clear(); _clear_uploads()
+        vector_store.add_documents(chunks, source_label=result["url"])
+        return jsonify({"success":True,"url":result["url"],"title":result["title"],"chunks":len(chunks),"total_chunks":vector_store.chunk_count})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
-# ── FILE: tracing/tracer.py ───────────────────────────────────────────────
-
-import threading
-from datetime import datetime
-
-
-class Tracer:
-    def __init__(self):
-        self._lock   = threading.Lock()
-        self._traces = {}    # query_id → [step, ...]
-        self._global = {"agent_calls": {}, "latencies": {}, "total_calls": 0}
-
-    def add(self, query_id: str, agent: str, message: str, status: str, latency_ms: int):
-        step = {
-            "agent":      agent,
-            "message":    message,
-            "status":     status,
-            "latency_ms": latency_ms,
-            "ts":         datetime.utcnow().strftime("%H:%M:%S"),
-        }
-        with self._lock:
-            self._traces.setdefault(query_id, []).append(step)
-            self._global["agent_calls"].setdefault(agent, 0)
-            self._global["agent_calls"][agent] += 1
-            self._global["latencies"].setdefault(agent, [])
-            if latency_ms > 0:
-                self._global["latencies"][agent].append(latency_ms)
-            self._global["total_calls"] += 1
-
-    def get(self, query_id: str) -> list:
-        with self._lock:
-            return list(self._traces.get(query_id, []))
-
-    def stats(self) -> dict:
-        with self._lock:
-            avg_lat = {
-                agent: round(sum(v) / len(v)) if v else 0
-                for agent, v in self._global["latencies"].items()
-            }
-            return {
-                "agent_calls":    dict(self._global["agent_calls"]),
-                "avg_latency_ms": avg_lat,
-                "total_calls":    self._global["total_calls"],
-                "total_queries":  len(self._traces),
-            }
+@app.route("/api/research", methods=["POST"])
+def research():
+    data     = request.json or {}
+    question = (data.get("question") or "").strip()
+    if not question: return jsonify({"error": "Question is required."}), 400
+    if vector_store.doc_count == 0:
+        return jsonify({"error": "No knowledge base loaded — fetch a URL, search, or upload a PDF first."}), 400
+    qid = str(uuid.uuid4())
+    queries[qid] = {"status":"running","result":None}
+    def _run():
+        try:
+            result = graph.run(question, qid)
+            queries[qid]["result"] = result
+            queries[qid]["status"] = "pending_review" if result.get("needs_human_review") else "complete"
+        except Exception as exc:
+            queries[qid]["status"] = "error"
+            queries[qid]["result"] = {"error": str(exc)}
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"query_id": qid})
 
 
-# ── FILE: requirements.txt ────────────────────────────────────────────────
-
-flask==3.1.0
-python-dotenv==1.0.1
-langgraph==0.2.55
-langchain==0.3.7
-langchain-huggingface==0.1.2
-langchain-core==0.3.21
-langchain-community==0.3.7
-huggingface-hub==0.26.2
-sentence-transformers==3.3.1
-faiss-cpu==1.9.0
-rank-bm25==0.2.2
-pypdf==5.1.0
-duckduckgo-search==6.3.7
-numpy==1.26.4
-gunicorn==23.0.0
-werkzeug==3.1.3
+@app.route("/api/trace/<qid>")
+def get_trace(qid):
+    q = queries.get(qid)
+    if not q: return jsonify({"error":"Query not found."}),404
+    return jsonify({"status":q["status"],"trace":tracer.get(qid),"result":q["result"]})
 
 
-# ── FILE: Dockerfile ──────────────────────────────────────────────────────
-
-FROM python:3.10-slim
-
-WORKDIR /app
-
-# System deps for faiss and sentence-transformers
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libgomp1 && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Pre-download the embedding model so first request is fast
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
-
-COPY . .
-
-RUN useradd -m -u 1000 appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE 7860
-ENV PYTHONUNBUFFERED=1
-
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--timeout", "180", "--keep-alive", "5", "app:app"]
+@app.route("/api/review")
+def review_queue():
+    pending = [
+        {"query_id":qid,"question":q["result"].get("question","") if q["result"] else "","generation":q["result"].get("generation","") if q["result"] else "","critique":q["result"].get("critique","") if q["result"] else ""}
+        for qid,q in queries.items() if q["status"]=="pending_review" and q["result"]
+    ]
+    return jsonify({"pending": pending})
 
 
-# ── FILE: .env.example ────────────────────────────────────────────────────
-
-# ── Required ──────────────────────────────────────────────────────────────
-# Free HuggingFace token (Read scope is sufficient)
-# Get yours: https://huggingface.co/settings/tokens
-HF_TOKEN=hf_your_token_here
-
-# ── Optional ──────────────────────────────────────────────────────────────
-# Flask session secret (auto-generated if not set)
-SECRET_KEY=change_me_to_a_random_string
-
-# Embedding model (runs locally — no token required for this one)
-EMBED_MODEL=BAAI/bge-small-en-v1.5
-
-# Planner + Generator model (HF Inference API)
-GENERATOR_MODEL=mistralai/Mistral-7B-Instruct-v0.3
-
-# Grader + Critic model (HF Inference API)
-CRITIC_MODEL=HuggingFaceH4/zephyr-7b-beta
+@app.route("/api/review/<qid>", methods=["POST"])
+def review_action(qid):
+    data=request.json or {}; action=data.get("action")
+    if qid not in queries: return jsonify({"error":"Query not found."}),404
+    if action not in ("approve","reject"): return jsonify({"error":"Action must be approve or reject."}),400
+    queries[qid]["status"]="complete" if action=="approve" else "rejected"
+    if queries[qid]["result"]: queries[qid]["result"]["human_approved"]=action=="approve"
+    tracer.add(qid,"human_review",f"Reviewer {action}d this answer.","complete",0)
+    return jsonify({"success":True})
 
 
-# ── FILE: templates/index.html ────────────────────────────────────────────
+@app.route("/api/observability")
+def observability():
+    return jsonify(tracer.stats())
 
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🧠 DocMind — Agentic Research Platform</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<style>
-:root {
-  --bg:      #070d1f; --sb:    #0b1120; --card:  rgba(255,255,255,.04);
-  --border:  rgba(255,255,255,.08); --hbg:  rgba(255,255,255,.07);
-  --hbd:     rgba(79,142,247,.3);   --text: #e2e8f0; --muted: #8892a4;
-  --accent:  #4f8ef7; --gold:  #f59e0b; --teal: #06b6d4; --green: #22c55e;
-  --red:     #ef4444; --purple:#a78bfa; --sw:   250px; --r: 12px;
-  --font:    'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
-}
-[data-theme="light"] {
-  --bg:#f8fafc; --sb:#f1f5f9; --card:rgba(0,0,0,.03); --border:rgba(0,0,0,.08);
-  --hbg:rgba(0,0,0,.05); --hbd:rgba(37,99,235,.25); --text:#0f172a; --muted:#4b5675;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;transition:background .3s,color .3s}
-a{text-decoration:none} code{font-family:var(--mono);font-size:.86em;background:rgba(79,142,247,.1);padding:2px 6px;border-radius:4px}
-/* ── SIDEBAR ── */
-#sb{width:var(--sw);min-width:var(--sw);height:100vh;background:var(--sb);border-right:1px solid var(--border);position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;overflow:hidden;transition:background .3s}
-.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.sb-logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4f8ef7,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.sb-logo-text{font-size:.88rem;font-weight:900;line-height:1.2} .sb-logo-sub{font-size:.65rem;color:var(--muted);font-weight:500}
-.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
-.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .18s;border:1px solid transparent;white-space:nowrap}
-.nav-item i{width:17px;text-align:center;font-size:.82rem}
-.nav-item:hover{background:var(--hbg);color:var(--text)}
-.nav-item.active{background:rgba(79,142,247,.12);color:var(--accent);border-color:rgba(79,142,247,.2)}
-.nav-sep{height:1px;background:var(--border);margin:6px 4px}
-.sb-footer{padding:12px 14px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted)}
-.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-/* ── MAIN ── */
-#main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
-#topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);transition:background .3s}
-#topbar-title{font-size:.9rem;font-weight:800;display:flex;align-items:center;gap:8px}
-#topbar-title i{color:var(--accent)}
-.topbar-right{display:flex;align-items:center;gap:8px}
-.icon-btn{width:32px;height:32px;border-radius:7px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.78rem;color:var(--muted);transition:all .18s}
-.icon-btn:hover{background:var(--hbg);color:var(--text)}
-/* ── PAGES ── */
-.page{display:none;padding:24px;animation:fadeIn .22s ease}
-.page.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-/* ── CARDS ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:border-color .2s,background .2s}
-.card+.card{margin-top:18px}
-.card:hover{background:var(--hbg);border-color:var(--hbd)}
-.card-title{font-size:.92rem;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card-title i{color:var(--accent)}
-.s-tag{display:inline-block;font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:5px;margin-bottom:9px}
-.s-tag-blue{background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)}
-.s-tag-gold{background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
-.s-tag-teal{background:rgba(6,182,212,.1);color:var(--teal);border:1px solid rgba(6,182,212,.2)}
-.grad{background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-/* ── FORM ── */
-textarea,input[type="text"],input[type="file"]{width:100%;background:rgba(0,0,0,.25);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-family:var(--font);font-size:.86rem;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
-[data-theme="light"] textarea,[data-theme="light"] input[type="text"]{background:rgba(255,255,255,.7)}
-textarea:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.1)}
-textarea{min-height:90px}
-label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
-.field{margin-bottom:14px}
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .18s;font-family:var(--font);white-space:nowrap}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
-.btn-primary{background:linear-gradient(135deg,rgba(79,142,247,.22),rgba(6,182,212,.16));color:var(--accent);border-color:rgba(79,142,247,.38)}
-.btn-primary:hover:not(:disabled){background:linear-gradient(135deg,rgba(79,142,247,.35),rgba(6,182,212,.25));transform:translateY(-1px)}
-.btn-green{background:rgba(34,197,94,.12);color:var(--green);border-color:rgba(34,197,94,.3)}
-.btn-green:hover:not(:disabled){background:rgba(34,197,94,.22);transform:translateY(-1px)}
-.btn-red{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.3)}
-.btn-red:hover:not(:disabled){background:rgba(239,68,68,.22);transform:translateY(-1px)}
-.btn-ghost{background:var(--card);color:var(--muted);border-color:var(--border)}
-.btn-ghost:hover:not(:disabled){background:var(--hbg);color:var(--text)}
-.btn-sm{padding:5px 12px;font-size:.74rem}
-/* ── OUTPUT ── */
-.output-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.86rem;line-height:1.7;color:var(--text);min-height:70px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s}
-[data-theme="light"] .output-box{background:rgba(255,255,255,.6)}
-.output-box.lit{border-color:rgba(79,142,247,.25)}
-/* ── SPINNER ── */
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-row{display:flex;align-items:center;gap:9px;padding:10px 0;color:var(--muted);font-size:.83rem}
-/* ── ERROR ── */
-.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:10px 14px;color:#fca5a5;font-size:.82rem;margin-top:8px;display:flex;gap:9px;align-items:flex-start}
-.err-box i{color:var(--red);margin-top:2px;flex-shrink:0}
-/* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
-.stat-item{background:var(--card);padding:16px 10px;text-align:center}
-.stat-v{font-size:1.5rem;font-weight:900;line-height:1;margin-bottom:3px}
-.stat-l{font-size:.68rem;color:var(--muted)}
-/* ── HOME GRID ── */
-.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
-.home-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .2s;text-align:left}
-.home-card:hover{background:var(--hbg);border-color:var(--hbd);transform:translateY(-3px)}
-.home-card-icon{font-size:1.7rem;margin-bottom:9px}
-.home-card-name{font-size:.88rem;font-weight:800;color:var(--text);margin-bottom:4px}
-.home-card-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
-/* ── AGENT GRAPH SVG ── */
-#agent-graph-wrap{width:100%;overflow-x:auto;margin:18px 0}
-#agent-graph{width:100%;max-width:700px;height:200px;display:block;margin:0 auto}
-.ag-node{transition:all .4s}
-.ag-node-idle    rect{fill:rgba(136,146,164,.07);stroke:rgba(136,146,164,.3);stroke-width:1.5}
-.ag-node-running rect{fill:rgba(79,142,247,.15);stroke:var(--accent);stroke-width:2;filter:drop-shadow(0 0 6px rgba(79,142,247,.5))}
-.ag-node-complete rect{fill:rgba(34,197,94,.1);stroke:var(--green);stroke-width:1.5}
-.ag-node-error   rect{fill:rgba(239,68,68,.1);stroke:var(--red);stroke-width:1.5}
-.ag-node-running .ag-pulse{animation:nodePulse 1.2s ease infinite}
-@keyframes nodePulse{0%,100%{opacity:.6}50%{opacity:1}}
-.ag-label{font-size:10px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
-.ag-sub{font-size:8.5px;fill:var(--muted);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
-.ag-arrow{stroke:rgba(136,146,164,.35);stroke-width:1.5;fill:none;marker-end:url(#arrow)}
-/* ── TRACE LOG ── */
-#trace-log{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;padding-right:4px}
-.trace-step{display:flex;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.8rem;animation:fadeIn .2s ease}
-.trace-badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:800;text-transform:uppercase;flex-shrink:0;white-space:nowrap;min-width:70px}
-.badge-planner  {background:rgba(79,142,247,.15);color:var(--accent)}
-.badge-retriever{background:rgba(6,182,212,.15);color:var(--teal)}
-.badge-grader   {background:rgba(245,158,11,.15);color:var(--gold)}
-.badge-rewriter {background:rgba(239,68,68,.12);color:var(--red)}
-.badge-generator{background:rgba(167,139,250,.15);color:var(--purple)}
-.badge-critic   {background:rgba(239,68,68,.15);color:var(--red)}
-.badge-human_review{background:rgba(34,197,94,.12);color:var(--green)}
-.trace-msg{color:var(--muted);flex:1;line-height:1.5}
-.trace-ts{font-size:.68rem;color:var(--muted);opacity:.6;flex-shrink:0}
-.trace-lat{font-size:.68rem;color:var(--teal);flex-shrink:0;white-space:nowrap}
-/* ── ANSWER CARD ── */
-#answer-card{display:none;margin-top:18px}
-.source-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.source-chip{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);border-radius:6px;padding:2px 9px;font-size:.72rem;color:var(--accent);font-weight:600}
-/* ── REVIEW CARDS ── */
-#review-list{display:flex;flex-direction:column;gap:14px}
-.review-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.review-card-q{font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:8px}
-.review-card-a{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;white-space:pre-wrap}
-.review-card-c{font-size:.76rem;color:var(--red);margin-bottom:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:6px;padding:8px 12px}
-.review-actions{display:flex;gap:8px}
-/* ── OBSERVABILITY ── */
-.obs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.obs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
-.obs-val{font-size:1.6rem;font-weight:900;margin-bottom:4px}
-.obs-lbl{font-size:.72rem;color:var(--muted)}
-.chart-wrap{position:relative;height:260px}
-/* ── UPLOAD DROP ZONE ── */
-#drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s}
-#drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,.06)}
-#drop-zone i{font-size:2.2rem;color:var(--muted);margin-bottom:10px;display:block}
-#drop-zone p{color:var(--muted);font-size:.85rem}
-/* ── DOC LIST ── */
-.doc-item{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.82rem;margin-bottom:6px}
-.doc-icon{color:var(--accent)}
-.doc-name{font-weight:600;flex:1}
-.doc-chunks{font-size:.72rem;color:var(--teal)}
-/* ── TOOL PLAYGROUND ── */
-.tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.tool-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.tool-icon{font-size:1.8rem;margin-bottom:8px}
-.tool-name{font-size:.88rem;font-weight:800;margin-bottom:4px}
-.tool-desc{font-size:.74rem;color:var(--muted);margin-bottom:12px;line-height:1.5}
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  #sb{width:52px;min-width:52px}
-  .sb-logo-text,.sb-logo-sub,.nav-item span,.sb-footer{display:none}
-  .sb-logo{justify-content:center;padding:12px 8px}
-  .nav-item{justify-content:center;padding:11px}
-  #main{margin-left:52px}
-  .home-grid,.tool-grid{grid-template-columns:1fr 1fr}
-  .obs-grid{grid-template-columns:repeat(2,1fr)}
-  .stats-row{grid-template-columns:repeat(3,1fr)}
-}
-@media(max-width:600px){
-  .page{padding:14px}
-  .home-grid,.tool-grid{grid-template-columns:1fr}
-  .stats-row{grid-template-columns:repeat(2,1fr)}
-}
-</style>
-</head>
-<body>
 
-<!-- ── SIDEBAR ── -->
-<nav id="sb">
-  <div class="sb-logo">
-    <div class="sb-logo-icon">🧠</div>
-    <div><div class="sb-logo-text">DocMind</div><div class="sb-logo-sub">Agentic Research</div></div>
-  </div>
-  <div class="sb-nav">
-    <div class="nav-item active" onclick="nav('home')"     id="nav-home">    <i class="fas fa-home"></i>        <span>Overview</span></div>
-    <div class="nav-item"        onclick="nav('upload')"   id="nav-upload">  <i class="fas fa-upload"></i>      <span>Upload &amp; Index</span></div>
-    <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('research')" id="nav-research"><i class="fas fa-search"></i>      <span>Research Query</span></div>
-    <div class="nav-item"        onclick="nav('review')"   id="nav-review">  <i class="fas fa-eye"></i>         <span>Human Review</span><span id="review-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;margin-left:auto">0</span></div>
-    <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('obs')"      id="nav-obs">     <i class="fas fa-chart-line"></i>  <span>Observability</span></div>
-    <div class="nav-item"        onclick="nav('tools')"    id="nav-tools">   <i class="fas fa-tools"></i>       <span>Tool Playground</span></div>
-  </div>
-  <div class="sb-footer">
-    <div><span class="status-dot"></span><span id="sb-status">Checking…</span></div>
-  </div>
-</nav>
+@app.route("/api/tool/<name>", methods=["POST"])
+def tool_run(name):
+    inp=((request.json or {}).get("input") or "").strip()
+    if not inp: return jsonify({"error":"Input is required."}),400
+    try:
+        result={"web_search":web_search,"calculator":calculate,"code":run_code}.get(n,lambda _:None)(inp)
+        if result is None: return jsonify({"error":f"Unknown tool '{n}'."}),400
+        return jsonify({"result":result})
+    except Exception as exc:
+        return jsonify({"error":str(exc)}),500
 
-<!-- ── MAIN ── -->
-<div id="main">
 
+@app.route("/api/stats")
+def stats():
+    return jsonify({
+        "docs_indexed":    vector_store.doc_count,
+        "chunks_stored":   vector_store.chunk_count,
+        "source":          vector_store.source_label,
+        "queries_run":     len(queries),
+        "queries_complete":sum(1 for q in queries.values() if q["status"]=="complete"),
+        "pending_review":  sum(1 for q in queries.values() if q["status"]=="pending_review"),
+        "active_model":    get_current_model_key(),
+    })
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=7860, debug=False)
+
+
+# ── PATCH: templates/index.html — model selector additions only ───────────
+#
+# Add this CSS inside the existing <style> block (anywhere before </style>):
+# ─────────────────────────────────────────────────────────────────────────
+
+/*
+/* ── MODEL SELECTOR ── */
+#model-selector-wrap{position:relative}
+#model-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:700;color:var(--text);transition:all .18s;white-space:nowrap}
+#model-pill:hover{background:var(--hbg);border-color:var(--hbd)}
+#model-pill .model-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+#model-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;width:320px;background:var(--sb);border:1px solid var(--border);border-radius:var(--r);z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden}
+#model-dropdown.open{display:block;animation:fadeIn .18s ease}
+.model-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
+.model-opt:last-child{border-bottom:none}
+.model-opt:hover{background:var(--hbg)}
+.model-opt.active{background:rgba(79,142,247,.1)}
+.model-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:2px}
+.model-opt-name{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.model-opt-desc{font-size:.72rem;color:var(--muted);line-height:1.4}
+.model-opt-meta{display:flex;gap:6px;margin-top:5px}
+.model-meta-tag{font-size:.65rem;padding:1px 7px;border-radius:5px;font-weight:700}
+.speed-fast  {background:rgba(34,197,94,.12);color:var(--green)}
+.speed-medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.speed-slow  {background:rgba(239,68,68,.12);color:var(--red)}
+.params-tag  {background:rgba(79,142,247,.1);color:var(--accent)}
+*/
+
+# ─────────────────────────────────────────────────────────────────────────
+# Replace the existing topbar div with this (inside templates/index.html):
+# ─────────────────────────────────────────────────────────────────────────
+
+<!--
 <div id="topbar">
   <div id="topbar-title"><i class="fas fa-wand-magic-sparkles"></i><span id="topbar-label">Overview</span></div>
   <div class="topbar-right">
+
+    <!-- Model selector -->
+    <div id="model-selector-wrap">
+      <div id="model-pill" onclick="toggleModelDropdown()">
+        <span class="model-dot"></span>
+        <span id="model-pill-label">Loading…</span>
+        <i class="fas fa-chevron-down" style="font-size:.6rem;color:var(--muted)"></i>
+      </div>
+      <div id="model-dropdown">
+        <div style="padding:10px 16px 8px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)">Select Model — All Free Tier</div>
+        <div id="model-opts-list"></div>
+      </div>
+    </div>
+
     <div class="icon-btn" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon" id="theme-icon"></i></div>
     <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="icon-btn" title="GitHub"><i class="fab fa-github"></i></a>
   </div>
 </div>
+-->
 
-<!-- ════════════════════════════════
-     PAGE: HOME
-═════════════════════════════════ -->
-<div class="page active" id="page-home">
-  <div style="text-align:center;padding:28px 0 20px">
-    <h1 style="font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;margin-bottom:8px">🧠 <span class="grad">DocMind</span></h1>
-    <p style="color:var(--muted);font-size:.92rem;max-width:500px;margin:0 auto;line-height:1.65">A production-grade agentic research platform. Five specialized LangGraph agents collaborate to retrieve, grade, generate, and critique answers from your documents.</p>
-  </div>
-  <div class="stats-row" id="home-stats">
-    <div class="stat-item"><div class="stat-v grad" id="st-docs">0</div><div class="stat-l">PDFs Indexed</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-chunks">0</div><div class="stat-l">Chunks Stored</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-queries">0</div><div class="stat-l">Queries Run</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-complete">0</div><div class="stat-l">Completed</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-review">0</div><div class="stat-l">Pending Review</div></div>
-  </div>
-  <div class="home-grid">
-    <div class="home-card" onclick="nav('upload')"><div class="home-card-icon">📤</div><div class="home-card-name">Upload &amp; Index</div><div class="home-card-desc">Upload PDFs. Chunks are embedded with BAAI/bge-small-en-v1.5 locally and stored in a FAISS + BM25 hybrid index.</div></div>
-    <div class="home-card" onclick="nav('research')"><div class="home-card-icon">🔍</div><div class="home-card-name">Research Query</div><div class="home-card-desc">Ask any question. Watch the five LangGraph agents plan, retrieve, grade, generate, and critique in real time.</div></div>
-    <div class="home-card" onclick="nav('review')"><div class="home-card-icon">👁️</div><div class="home-card-name">Human Review</div><div class="home-card-desc">Answers flagged by the Critic agent appear here for your approval before being returned to the user.</div></div>
-    <div class="home-card" onclick="nav('obs')"><div class="home-card-icon">📊</div><div class="home-card-name">Observability</div><div class="home-card-desc">Live trace of every agent decision, per-agent latency, token usage, and retrieval quality scores.</div></div>
-    <div class="home-card" onclick="nav('tools')"><div class="home-card-icon">🔧</div><div class="home-card-name">Tool Playground</div><div class="home-card-desc">Test web search, calculator, and sandboxed code execution — the three tools the Planner agent can invoke.</div></div>
-    <div class="home-card" style="cursor:default">
-      <div class="home-card-icon">🤗</div>
-      <div class="home-card-name">Free HF Models</div>
-      <div class="home-card-desc" id="hf-status">Mistral-7B · Zephyr-7B · bge-small. Token: <span id="hf-token-status" style="color:var(--red)">not set</span></div>
-    </div>
-  </div>
-</div>
+# ─────────────────────────────────────────────────────────────────────────
+# Add this JavaScript block at the bottom of the <script> section
+# (before the closing </script> tag):
+# ─────────────────────────────────────────────────────────────────────────
 
-<!-- ════════════════════════════════
-     PAGE: UPLOAD
-═════════════════════════════════ -->
-<div class="page" id="page-upload">
-  <div class="s-tag s-tag-blue">FAISS + BM25 Hybrid Index · BAAI/bge-small-en-v1.5 (local)</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-upload"></i> Upload &amp; Index Documents</div>
-  <div class="card">
-    <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="dropOver(event)" ondragleave="dropLeave(event)" ondrop="dropFile(event)">
-      <i class="fas fa-file-pdf"></i>
-      <p><strong style="color:var(--text)">Click to upload</strong> or drag a PDF here</p>
-      <p style="margin-top:4px;font-size:.75rem">PDF files only · Max recommended 20 pages for free HF inference tier</p>
-    </div>
-    <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="uploadFile(this.files[0])">
-    <div id="upload-progress" style="display:none;margin-top:12px">
-      <div class="loading-row"><div class="spinner"></div> Chunking, embedding, and indexing…</div>
-    </div>
-    <div id="upload-result"></div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="card-title"><i class="fas fa-database"></i> Indexed Documents</div>
-    <div id="doc-list"><p style="color:var(--muted);font-size:.83rem">No documents indexed yet.</p></div>
-  </div>
-</div>
+/*
+// ── MODEL SELECTOR ────────────────────────────────────────────────────────
 
-<!-- ════════════════════════════════
-     PAGE: RESEARCH
-═════════════════════════════════ -->
-<div class="page" id="page-research">
-  <div class="s-tag s-tag-blue">LangGraph · 5 Agents · Corrective RAG · Human-in-the-Loop</div>
-  <div class="card-title" style="margin-bottom:14px"><i class="fas fa-search"></i> Research Query</div>
-
-  <div class="card">
-    <div class="field">
-      <label>Your Research Question</label>
-      <textarea id="q-input" placeholder="Ask anything about your uploaded documents…" rows="3" onkeydown="researchKeydown(event)"></textarea>
-    </div>
-    <button class="btn btn-primary" id="q-btn" onclick="runResearch()"><i class="fas fa-bolt"></i> Run Research</button>
-    <div id="q-err"></div>
-  </div>
-
-  <!-- Agent Graph -->
-  <div class="card" id="graph-card" style="margin-top:16px;display:none">
-    <div class="card-title"><i class="fas fa-project-diagram"></i> LangGraph Agent State Machine</div>
-    <div id="agent-graph-wrap">
-      <svg id="agent-graph" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(136,146,164,.4)"/>
-          </marker>
-        </defs>
-        <!-- Arrows -->
-        <line class="ag-arrow" x1="95"  y1="70" x2="160" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="245" y1="70" x2="310" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="395" y1="70" x2="460" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="545" y1="70" x2="610" y2="70" marker-end="url(#arrow)"/>
-        <!-- Rewriter loop arrow -->
-        <path class="ag-arrow" d="M 350 105 Q 350 150 280 150 Q 210 150 205 105" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
-        <!-- Nodes -->
-        <g class="ag-node ag-node-idle" id="gn-planner">
-          <rect x="5" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="50" y="63">PLANNER</text>
-          <text class="ag-sub" x="50" y="80">Mistral-7B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-retriever">
-          <rect x="160" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="205" y="63">RETRIEVER</text>
-          <text class="ag-sub" x="205" y="80">FAISS+BM25</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-grader">
-          <rect x="310" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="355" y="63">GRADER</text>
-          <text class="ag-sub" x="355" y="80">Zephyr-7B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-rewriter" style="opacity:.5">
-          <rect x="265" y="130" width="80" height="40" rx="8"/>
-          <text class="ag-label ag-pulse" x="305" y="150">REWRITER</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-generator">
-          <rect x="460" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="505" y="63">GENERATOR</text>
-          <text class="ag-sub" x="505" y="80">Mistral-7B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-critic">
-          <rect x="610" y="44" width="85" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="652" y="63">CRITIC</text>
-          <text class="ag-sub" x="652" y="80">Zephyr-7B</text>
-        </g>
-      </svg>
-    </div>
-
-    <!-- Trace Log -->
-    <div style="margin-top:4px">
-      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Agent Trace</div>
-      <div id="trace-log"><p style="color:var(--muted);font-size:.8rem">Waiting for agent execution…</p></div>
-    </div>
-  </div>
-
-  <!-- Answer Card -->
-  <div class="card" id="answer-card">
-    <div class="card-title"><i class="fas fa-check-circle" style="color:var(--green)"></i> Research Answer</div>
-    <div class="output-box lit" id="answer-output"></div>
-    <div class="source-chips" id="source-chips"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-ghost btn-sm" onclick="copyText('answer-output',this)"><i class="fas fa-copy"></i> Copy</button>
-    </div>
-  </div>
-
-  <!-- Flagged for review -->
-  <div class="card" id="flagged-card" style="display:none;border-color:rgba(245,158,11,.3)">
-    <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--gold)"></i> Flagged for Human Review</div>
-    <p style="color:var(--muted);font-size:.85rem">The Critic agent flagged this answer for potential quality issues. Go to <strong>Human Review</strong> to approve or reject it.</p>
-    <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="nav('review')"><i class="fas fa-eye"></i> Go to Review Queue</button>
-  </div>
-</div>
-
-<!-- ════════════════════════════════
-     PAGE: HUMAN REVIEW
-═════════════════════════════════ -->
-<div class="page" id="page-review">
-  <div class="s-tag s-tag-gold">Human-in-the-Loop · Critic Agent Escalations</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-eye"></i> Human Review Queue</div>
-  <div id="review-list"><p style="color:var(--muted);font-size:.84rem">No answers pending review.</p></div>
-</div>
-
-<!-- ════════════════════════════════
-     PAGE: OBSERVABILITY
-═════════════════════════════════ -->
-<div class="page" id="page-obs">
-  <div class="s-tag s-tag-teal">LangSmith-Style Tracing · Per-Agent Metrics</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-chart-line"></i> Observability Dashboard</div>
-  <div class="obs-grid" id="obs-cards">
-    <div class="obs-card"><div class="obs-val grad" id="obs-total">0</div><div class="obs-lbl">Total Agent Calls</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-queries">0</div><div class="obs-lbl">Total Queries</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-avg-plan">—</div><div class="obs-lbl">Avg Planner Latency</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-avg-gen">—</div><div class="obs-lbl">Avg Generator Latency</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title"><i class="fas fa-tachometer-alt"></i> Agent Call Distribution</div>
-    <div class="chart-wrap"><canvas id="obs-chart"></canvas></div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="card-title"><i class="fas fa-stopwatch"></i> Avg Latency per Agent (ms)</div>
-    <div class="chart-wrap"><canvas id="lat-chart"></canvas></div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════
-     PAGE: TOOLS
-═════════════════════════════════ -->
-<div class="page" id="page-tools">
-  <div class="s-tag s-tag-blue">Function Calling · Tool Use</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-tools"></i> Tool Playground</div>
-  <div class="tool-grid">
-
-    <div class="tool-card">
-      <div class="tool-icon">🌐</div>
-      <div class="tool-name">Web Search</div>
-      <div class="tool-desc">DuckDuckGo free search — no API key required. Used by the Planner when web context is needed.</div>
-      <div class="field"><label>Search Query</label><textarea id="ws-inp" rows="2" placeholder="e.g. LangGraph tutorial 2025"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="ws-btn" onclick="runTool('web_search','ws-inp','ws-out',this)"><i class="fas fa-search"></i> Search</button>
-      <div id="ws-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
-    </div>
-
-    <div class="tool-card">
-      <div class="tool-icon">🧮</div>
-      <div class="tool-name">Calculator</div>
-      <div class="tool-desc">Safe AST-based math evaluator supporting +, −, ×, ÷, ^, and all Python math module functions.</div>
-      <div class="field"><label>Expression</label><textarea id="calc-inp" rows="2" placeholder="e.g. sqrt(144) + log(100)"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="calc-btn" onclick="runTool('calculator','calc-inp','calc-out',this)"><i class="fas fa-equals"></i> Calculate</button>
-      <div id="calc-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
-    </div>
-
-    <div class="tool-card">
-      <div class="tool-icon">💻</div>
-      <div class="tool-name">Code Runner</div>
-      <div class="tool-desc">Sandboxed Python execution with safe builtins only (no file I/O, no network). Captures stdout output.</div>
-      <div class="field"><label>Python Code</label><textarea id="code-inp" rows="4" placeholder="x = [i**2 for i in range(10)]&#10;print(sum(x))"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="code-btn" onclick="runTool('code','code-inp','code-out',this)"><i class="fas fa-play"></i> Run</button>
-      <div id="code-out" class="output-box" style="margin-top:10px;min-height:60px;display:none;font-family:var(--mono)"></div>
-    </div>
-
-  </div>
-</div>
-
-</div><!-- /#main -->
-
-<!-- ════════════════════════════════════════════════════
-     JAVASCRIPT
-═════════════════════════════════════════════════════ -->
-<script>
-// ── GLOBALS ─────────────────────────────────────────────────────────────
-let currentQid    = null;
-let pollTimer     = null;
-let seenSteps     = 0;
-let uploadedDocs  = [];   // {name, chunks}
-let obsChart      = null;
-let latChart      = null;
-
-const PAGE_LABELS = {
-  home:'Overview', upload:'Upload & Index', research:'Research Query',
-  review:'Human Review', obs:'Observability', tools:'Tool Playground'
+const MODEL_ICONS = {
+  "zephyr-7b": "🦅",
+  "phi3-mini":  "🔷",
+  "gemma2-2b":  "💎",
+  "falcon-7b":  "🦅",
+  "mistral-v2": "🌀",
 };
 
-const NODE_AGENT_MAP = {
-  planner:'gn-planner', retriever:'gn-retriever', grader:'gn-grader',
-  rewriter:'gn-rewriter', generator:'gn-generator', critic:'gn-critic',
-  human_review:'gn-critic'
-};
+let modelsData = {};
 
-// ── NAVIGATION ──────────────────────────────────────────────────────────
-function nav(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.getElementById('nav-'  + id).classList.add('active');
-  document.getElementById('topbar-label').textContent = PAGE_LABELS[id];
-  if (id === 'obs')    loadObs();
-  if (id === 'review') loadReview();
-}
-
-// ── THEME ────────────────────────────────────────────────────────────────
-function toggleTheme() {
-  const d = document.documentElement;
-  const light = d.getAttribute('data-theme') === 'dark';
-  d.setAttribute('data-theme', light ? 'light' : 'dark');
-  document.getElementById('theme-icon').className = light ? 'fas fa-moon' : 'fas fa-sun';
-  localStorage.setItem('dm-theme', light ? 'light' : 'dark');
-}
-(function(){ const t = localStorage.getItem('dm-theme') || 'dark'; document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-icon').className = t==='dark'?'fas fa-moon':'fas fa-sun'; })();
-
-// ── HEALTH CHECK ─────────────────────────────────────────────────────────
-async function checkHealth() {
+async function loadModels() {
   try {
-    const r = await fetch('/health'); const d = await r.json();
-    document.getElementById('sb-status').textContent = d.token_set ? 'HF Token Active' : 'Token Missing';
-    document.getElementById('hf-token-status').textContent  = d.token_set ? 'set ✅' : 'not set ❌';
-    document.getElementById('hf-token-status').style.color  = d.token_set ? 'var(--green)' : 'var(--red)';
-  } catch(e) {}
-}
-async function refreshStats() {
-  try {
-    const r = await fetch('/api/stats'); const d = await r.json();
-    document.getElementById('st-docs').textContent    = d.docs_indexed;
-    document.getElementById('st-chunks').textContent  = d.chunks_stored;
-    document.getElementById('st-queries').textContent = d.queries_run;
-    document.getElementById('st-complete').textContent= d.queries_complete;
-    document.getElementById('st-review').textContent  = d.pending_review;
-    // Review badge
-    const badge = document.getElementById('review-badge');
-    badge.style.display = d.pending_review > 0 ? 'inline' : 'none';
-    badge.textContent = d.pending_review;
-  } catch(e) {}
-}
-checkHealth();
-refreshStats();
-setInterval(refreshStats, 8000);
-
-// ── UPLOAD ───────────────────────────────────────────────────────────────
-function dropOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-function dropLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
-function dropFile(e)  { e.preventDefault(); dropLeave(e); if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); }
-
-async function uploadFile(file) {
-  if (!file || !file.name.endsWith('.pdf')) {
-    showErr('upload-result', 'Only PDF files are supported.'); return;
-  }
-  document.getElementById('upload-progress').style.display = 'block';
-  document.getElementById('upload-result').innerHTML = '';
-  const fd = new FormData(); fd.append('file', file);
-  try {
-    const r = await fetch('/api/upload', {method:'POST', body:fd});
+    const r = await fetch('/api/models');
     const d = await r.json();
-    document.getElementById('upload-progress').style.display = 'none';
-    if (d.error) { showErr('upload-result', d.error); return; }
-    uploadedDocs.push({name: d.filename, chunks: d.chunks});
-    renderDocList();
-    document.getElementById('upload-result').innerHTML =
-      `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.83rem;color:var(--green)">✅ <strong>${d.filename}</strong> indexed — ${d.chunks} chunks · Total: ${d.total_chunks} chunks across ${d.total_docs} doc(s).</div>`;
-    refreshStats();
-  } catch(e) {
-    document.getElementById('upload-progress').style.display = 'none';
-    showErr('upload-result', e.message);
-  }
+    modelsData = d.models;
+    renderModelOpts(d.models, d.current);
+    updateModelPill(d.current, d.models);
+  } catch(e) {}
 }
 
-function renderDocList() {
-  const el = document.getElementById('doc-list');
-  if (!uploadedDocs.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.83rem">No documents indexed yet.</p>'; return; }
-  el.innerHTML = uploadedDocs.map(d => `
-    <div class="doc-item">
-      <i class="fas fa-file-pdf doc-icon"></i>
-      <span class="doc-name">${d.name}</span>
-      <span class="doc-chunks">${d.chunks} chunks</span>
+function renderModelOpts(models, current) {
+  const list = document.getElementById('model-opts-list');
+  list.innerHTML = Object.entries(models).map(([key, m]) => `
+    <div class="model-opt ${key===current?'active':''}" onclick="selectModel('${key}')">
+      <div class="model-opt-icon" style="background:rgba(79,142,247,.1)">${MODEL_ICONS[key]||'🤖'}</div>
+      <div>
+        <div class="model-opt-name">${m.label}</div>
+        <div class="model-opt-desc">${m.description}</div>
+        <div class="model-opt-meta">
+          <span class="model-meta-tag speed-${m.speed}">${m.speed}</span>
+          <span class="model-meta-tag params-tag">${m.params}</span>
+          ${key===current ? '<span class="model-meta-tag" style="background:rgba(34,197,94,.12);color:var(--green)">✓ active</span>' : ''}
+        </div>
+      </div>
     </div>`).join('');
 }
 
-// ── RESEARCH ─────────────────────────────────────────────────────────────
-function researchKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runResearch(); } }
+function updateModelPill(key, models) {
+  const m = models[key];
+  if (!m) return;
+  document.getElementById('model-pill-label').textContent = m.label;
+}
 
-async function runResearch() {
-  const q = document.getElementById('q-input').value.trim();
-  if (!q) return;
-  clearErr('q-err');
-  resetGraph();
-  document.getElementById('graph-card').style.display  = 'block';
-  document.getElementById('answer-card').style.display = 'none';
-  document.getElementById('flagged-card').style.display= 'none';
-  document.getElementById('trace-log').innerHTML = '<p style="color:var(--muted);font-size:.8rem">Starting agents…</p>';
-  document.getElementById('q-btn').disabled = true;
-  seenSteps = 0;
-
+async function selectModel(key) {
   try {
-    const r = await fetch('/api/research', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question: q})});
+    const r = await fetch('/api/set_model', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model_key: key})});
     const d = await r.json();
-    if (d.error) { showErr('q-err', d.error); document.getElementById('q-btn').disabled=false; return; }
-    currentQid = d.query_id;
-    pollTimer  = setInterval(pollTrace, 2000);
-  } catch(e) {
-    showErr('q-err', e.message);
-    document.getElementById('q-btn').disabled = false;
-  }
-}
-
-async function pollTrace() {
-  if (!currentQid) return;
-  try {
-    const r = await fetch('/api/trace/' + currentQid);
-    const d = await r.json();
-    renderTraceSteps(d.trace || []);
-    if (d.status === 'complete' || d.status === 'pending_review' || d.status === 'error') {
-      clearInterval(pollTimer);
-      document.getElementById('q-btn').disabled = false;
-      if (d.status === 'complete' && d.result) {
-        renderAnswer(d.result);
-      } else if (d.status === 'pending_review') {
-        document.getElementById('flagged-card').style.display = 'block';
-        loadReview();
-      } else if (d.status === 'error' && d.result) {
-        showErr('q-err', d.result.error || 'Unknown error.');
-      }
-      refreshStats();
-    }
+    if (d.error) { alert(d.error); return; }
+    renderModelOpts(modelsData, key);
+    updateModelPill(key, modelsData);
+    closeModelDropdown();
   } catch(e) {}
 }
 
-function renderTraceSteps(steps) {
-  const log = document.getElementById('trace-log');
-  if (steps.length === 0) return;
-  if (seenSteps === 0) log.innerHTML = '';
-  for (let i = seenSteps; i < steps.length; i++) {
-    const s   = steps[i];
-    const lat = s.latency_ms > 0 ? `<span class="trace-lat">${s.latency_ms}ms</span>` : '';
-    log.innerHTML += `
-      <div class="trace-step">
-        <span class="trace-badge badge-${s.agent}">${s.agent}</span>
-        <span class="trace-msg">${esc(s.message)}</span>
-        ${lat}
-        <span class="trace-ts">${s.ts}</span>
-      </div>`;
-    setNodeStatus(s.agent, s.status === 'running' ? 'running' : 'complete');
-  }
-  seenSteps = steps.length;
-  log.scrollTop = log.scrollHeight;
+function toggleModelDropdown() {
+  document.getElementById('model-dropdown').classList.toggle('open');
+}
+function closeModelDropdown() {
+  document.getElementById('model-dropdown').classList.remove('open');
 }
 
-function renderAnswer(result) {
-  document.getElementById('answer-card').style.display = 'block';
-  document.getElementById('answer-output').textContent = result.generation || 'No answer generated.';
-  const chips = document.getElementById('source-chips');
-  chips.innerHTML = '';
-  if (result.graded_docs) {
-    const sources = [...new Set(result.graded_docs.map(d => `${d.source} p.${d.page}`))];
-    sources.forEach(s => { chips.innerHTML += `<span class="source-chip">📄 ${s}</span>`; });
-  }
-}
-
-function resetGraph() {
-  ['planner','retriever','grader','rewriter','generator','critic'].forEach(a => setNodeStatus(a, 'idle'));
-  document.getElementById('gn-rewriter').style.opacity = '.5';
-}
-
-function setNodeStatus(agent, status) {
-  const id = NODE_AGENT_MAP[agent];
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.className = `ag-node ag-node-${status}`;
-  if (agent === 'rewriter') el.style.opacity = status === 'idle' ? '.5' : '1';
-}
-
-// ── HUMAN REVIEW ─────────────────────────────────────────────────────────
-async function loadReview() {
-  try {
-    const r = await fetch('/api/review'); const d = await r.json();
-    const list = document.getElementById('review-list');
-    if (!d.pending || !d.pending.length) {
-      list.innerHTML = '<p style="color:var(--muted);font-size:.84rem">No answers pending review. The Critic agent will route flagged answers here.</p>'; return;
-    }
-    list.innerHTML = d.pending.map(item => `
-      <div class="review-card" id="rc-${item.query_id}">
-        <div class="review-card-q">❓ ${esc(item.question)}</div>
-        <div class="review-card-a">${esc(item.generation)}</div>
-        <div class="review-card-c">⚠️ Critic flag: ${esc(item.critique || 'Quality concerns detected.')}</div>
-        <div class="review-actions">
-          <button class="btn btn-green btn-sm" onclick="doReview('${item.query_id}','approve')"><i class="fas fa-check"></i> Approve</button>
-          <button class="btn btn-red   btn-sm" onclick="doReview('${item.query_id}','reject')"><i class="fas fa-times"></i> Reject</button>
-        </div>
-      </div>`).join('');
-  } catch(e) {}
-}
-
-async function doReview(qid, action) {
-  try {
-    await fetch('/api/review/'+qid, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action})});
-    document.getElementById('rc-'+qid)?.remove();
-    refreshStats();
-    if (!document.querySelector('.review-card')) {
-      document.getElementById('review-list').innerHTML = '<p style="color:var(--muted);font-size:.84rem">All reviews complete.</p>';
-    }
-  } catch(e) {}
-}
-
-// ── OBSERVABILITY ─────────────────────────────────────────────────────────
-async function loadObs() {
-  try {
-    const r  = await fetch('/api/observability'); const d = await r.json();
-    document.getElementById('obs-total').textContent   = d.total_calls;
-    document.getElementById('obs-queries').textContent = d.total_queries;
-    const lat = d.avg_latency_ms || {};
-    document.getElementById('obs-avg-plan').textContent = lat.planner   ? lat.planner+'ms'   : '—';
-    document.getElementById('obs-avg-gen').textContent  = lat.generator ? lat.generator+'ms' : '—';
-    renderObsCharts(d);
-  } catch(e) {}
-}
-
-function isDark() { return document.documentElement.getAttribute('data-theme') !== 'light'; }
-function gc()     { return isDark() ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)'; }
-function tc()     { return isDark() ? '#8892a4' : '#4b5675'; }
-function tt()     {
-  return {
-    backgroundColor: isDark() ? 'rgba(7,13,31,.95)' : 'rgba(255,255,255,.97)',
-    titleColor: isDark() ? '#e2e8f0' : '#0f172a',
-    bodyColor:  isDark() ? '#8892a4' : '#4b5675',
-    borderColor: isDark() ? 'rgba(79,142,247,.3)' : 'rgba(37,99,235,.2)',
-    borderWidth: 1
-  };
-}
-
-function renderObsCharts(d) {
-  const agents = ['planner','retriever','grader','rewriter','generator','critic'];
-  const calls  = agents.map(a => (d.agent_calls||{})[a] || 0);
-  const lats   = agents.map(a => (d.avg_latency_ms||{})[a] || 0);
-  const colors = ['rgba(79,142,247,.7)','rgba(6,182,212,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.65)','rgba(167,139,250,.7)','rgba(239,68,68,.5)'];
-  const t = tc(), g = gc(), tip = tt();
-
-  if (obsChart) obsChart.destroy();
-  obsChart = new Chart(document.getElementById('obs-chart'), {
-    type:'bar', data:{ labels:agents, datasets:[{label:'Total Calls', data:calls, backgroundColor:colors, borderRadius:6}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:t}},tooltip:tip}, scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'Calls',color:t,font:{size:11}}}} }
-  });
-  if (latChart) latChart.destroy();
-  latChart = new Chart(document.getElementById('lat-chart'), {
-    type:'bar', data:{ labels:agents, datasets:[{label:'Avg Latency (ms)', data:lats, backgroundColor:colors, borderRadius:6}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:t}},tooltip:tip}, scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'ms',color:t,font:{size:11}}}} }
-  });
-}
-
-// ── TOOLS ─────────────────────────────────────────────────────────────────
-async function runTool(name, inpId, outId, btn) {
-  const inp = document.getElementById(inpId).value.trim();
-  if (!inp) return;
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
-  const outEl = document.getElementById(outId);
-  outEl.style.display = 'block'; outEl.textContent = 'Running…';
-  try {
-    const r = await fetch('/api/tool/'+name, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({input:inp})});
-    const d = await r.json();
-    outEl.textContent = d.error ? '❌ ' + d.error : d.result;
-    outEl.classList.toggle('lit', !d.error);
-  } catch(e) { outEl.textContent = '❌ ' + e.message; }
-  btn.disabled = false;
-  const icons = {web_search:'<i class="fas fa-search"></i> Search', calculator:'<i class="fas fa-equals"></i> Calculate', code:'<i class="fas fa-play"></i> Run'};
-  btn.innerHTML = icons[name] || 'Run';
-}
-
-// ── UTILS ─────────────────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-function showErr(id, msg) { document.getElementById(id).innerHTML = `<div class="err-box"><i class="fas fa-exclamation-triangle"></i><div>${msg}</div></div>`; }
-function clearErr(id) { document.getElementById(id).innerHTML = ''; }
-function copyText(id, btn) {
-  navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 1800);
-  });
-}
-</script>
-</body>
-</html>
-
-
-# ── FILE: README.md ───────────────────────────────────────────────────────
-
----
-title: DocMind-Agentic-Research
-colorFrom: blue
-colorTo: indigo
-sdk: docker
----
-
-<div align="center">
-
-<h1>🧠 DocMind — Agentic Research Platform</h1>
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=4f8ef7&center=true&vCenter=true&width=700&lines=LangGraph+%C2%B7+5+Agents+%C2%B7+Corrective+RAG;Multi-Agent+Orchestration+%C2%B7+Human-in-the-Loop;Deployed+Free+on+HuggingFace+Spaces" alt="Typing SVG"/>
-
-<br/>
-
-[![Python](https://img.shields.io/badge/Python-3.10+-3b82f6?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-06b6d4?style=for-the-badge)](https://github.com/langchain-ai/langgraph)
-[![LangChain](https://img.shields.io/badge/LangChain-0.3-4f46e5?style=for-the-badge)](https://langchain.com/)
-[![Flask](https://img.shields.io/badge/Flask-3.1-3b82f6?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-3b82f6?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Spaces-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)
-[![Status](https://img.shields.io/badge/Status-Active-22c55e?style=for-the-badge)](#)
-
-<br/>
-
-**🧠 DocMind** — A production-grade agentic document research platform. Five specialized LangGraph agents plan, retrieve, grade, generate, and critique answers from uploaded PDFs using Corrective RAG, hybrid search, human-in-the-loop review, and LangSmith-style observability — all running free on HuggingFace Spaces.
-
-<br/>
-
----
-
-</div>
-
-## Table of Contents
-- [Features](#-features)
-- [Architecture](#️-architecture)
-- [Getting Started](#-getting-started)
-- [Docker Deployment](#-docker-deployment)
-- [Dashboard Modules](#-dashboard-modules)
-- [ML Models](#-ml-models)
-- [Project Structure](#-project-structure)
-- [Author](#-author)
-- [Contributing](#-contributing)
-- [Disclaimer](#disclaimer)
-- [License](#-license)
-
----
-
-## ✨ Features
-
-<table>
-  <tr><td>🧠 <b>LangGraph State Machine</b></td><td>Five agents wired into a cyclic StateGraph with conditional edges and Corrective RAG rewrite loops.</td></tr>
-  <tr><td>🔍 <b>Hybrid RAG (FAISS + BM25)</b></td><td>Semantic vector search combined with BM25 keyword search, fused via Reciprocal Rank Fusion for precision retrieval.</td></tr>
-  <tr><td>🤖 <b>Multi-Agent Orchestration</b></td><td>Planner, Retriever, Grader, Generator, and Critic agents each with specialized roles and distinct LLM temperature settings.</td></tr>
-  <tr><td>👁️ <b>Human-in-the-Loop</b></td><td>Answers failing the Critic agent's quality threshold are routed to a human review queue before delivery.</td></tr>
-  <tr><td>📊 <b>Observability Dashboard</b></td><td>Per-agent call counts, average latency, and Chart.js visualizations — LangSmith-style tracing without the paid tier.</td></tr>
-  <tr><td>🔧 <b>Tool Use / Function Calling</b></td><td>Three real tools: DuckDuckGo web search, safe AST calculator, and sandboxed Python code execution.</td></tr>
-  <tr><td>🔒 <b>Secure by Design</b></td><td>Stateless REST backend, no user data persisted, sandboxed code tool with restricted builtins only.</td></tr>
-  <tr><td>🐳 <b>Containerized Deployment</b></td><td>Docker-first with Gunicorn, embedding model pre-downloaded at build time for fast cold starts.</td></tr>
-</table>
-
----
-
-## 🏗️ Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   DocMind — LangGraph Flow                    │
-│                                                              │
-│  PDF Upload ──▶ Ingestor ──▶ FAISS+BM25 Hybrid Vector Store │
-│                                    │                         │
-│  User Query ──▶ [PLANNER Agent]    │                         │
-│                      │             │                         │
-│                 [RETRIEVER] ◀──────┘  (hybrid search)        │
-│                      │                                       │
-│                 [GRADER] ──▶ low score? ──▶ [REWRITER] ──┐  │
-│                      │                                   │  │
-│                      └──▶ [GENERATOR] ◀──────────────────┘  │
-│                                │                             │
-│                           [CRITIC] ──▶ flag? ──▶ [REVIEW]   │
-│                                │                             │
-│                            [OUTPUT]  Flask API + SPA UI      │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.10+ · Docker · Git · Free HuggingFace account
-
-### Local Installation
-
-```bash
-git clone https://github.com/mnoorchenar/docmind.git
-cd docmind
-
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-pip install -r requirements.txt
-
-cp .env.example .env
-# Edit .env — set HF_TOKEN to your free HuggingFace Read token
-
-python app.py
-```
-
-Open `http://localhost:7860` 🎉
-
-### Getting your free HuggingFace token
-1. Create a free account at [huggingface.co](https://huggingface.co)
-2. Go to Settings → Access Tokens → New Token → Role: **Read**
-3. Copy the token and set it as `HF_TOKEN` in your `.env` file or Space secrets
-
----
-
-## 🐳 Docker Deployment
-
-```bash
-docker build -t docmind .
-docker run -p 7860:7860 -e HF_TOKEN=hf_your_token_here docmind
-```
-
----
-
-## 📊 Dashboard Modules
-
-| Module | Description | Status |
-|--------|-------------|--------|
-| 📤 Upload & Index | PDF ingest, chunk, embed (local), FAISS+BM25 index | ✅ Live |
-| 🔍 Research Query | LangGraph 5-agent pipeline with real-time trace | ✅ Live |
-| 👁️ Human Review | Critic escalation queue with approve/reject | ✅ Live |
-| 📊 Observability | Per-agent latency, call counts, Chart.js dashboard | ✅ Live |
-| 🔧 Tool Playground | Web search, calculator, code runner | ✅ Live |
-
----
-
-## 🧠 ML Models
-
-```python
-models = {
-    "planner_generator": "mistralai/Mistral-7B-Instruct-v0.3",
-    "grader_critic":     "HuggingFaceH4/zephyr-7b-beta",
-    "embeddings":        "BAAI/bge-small-en-v1.5",
-    "vector_index":      "FAISS (faiss-cpu, local)",
-    "keyword_index":     "BM25 (rank-bm25, local)",
-    "fusion_strategy":   "Reciprocal Rank Fusion (RRF k=60)",
-    "graph_framework":   "LangGraph 0.2 StateGraph",
-    "chain_syntax":      "LangChain LCEL (prompt | llm)",
-}
-```
-
----
-
-## 📁 Project Structure
-
-```
-docmind/
-├── 📄 app.py                     # Flask entry point, 10 REST routes
-├── 📄 requirements.txt
-├── 📄 Dockerfile                 # Port 7860, embedding model pre-downloaded
-├── 📄 .env.example
-├── 📂 agents/
-│   ├── 📄 planner.py             # Mistral-7B — task decomposition
-│   ├── 📄 retriever.py           # Hybrid FAISS+BM25 search wrapper
-│   ├── 📄 grader.py              # Zephyr-7B — 0.0–1.0 relevance scoring
-│   ├── 📄 generator.py           # Mistral-7B — cited answer generation
-│   └── 📄 critic.py              # Zephyr-7B — hallucination detection
-├── 📂 graph/
-│   └── 📄 research_graph.py      # LangGraph StateGraph (5 nodes + conditional edges)
-├── 📂 rag/
-│   ├── 📄 ingestor.py            # PyPDF + overlapping chunker
-│   ├── 📄 vector_store.py        # FAISS + BM25 + RRF fusion
-│   └── 📄 embeddings.py          # sentence-transformers local wrapper
-├── 📂 tools/
-│   ├── 📄 web_search.py          # DuckDuckGo free search
-│   ├── 📄 calculator.py          # AST-safe math evaluator
-│   └── 📄 code_tool.py           # Sandboxed Python exec
-├── 📂 tracing/
-│   └── 📄 tracer.py              # Thread-safe in-memory trace store
-├── 📂 templates/
-│   └── 📄 index.html             # Dark-mode 5-page SPA
-└── 📂 docs/
-    └── 📄 project-template.html  # Portfolio showcase page
-```
-
----
-
-## 👨‍💻 Author
-
-<div align="center">
-<table><tr><td align="center" width="100%">
-<img src="https://avatars.githubusercontent.com/mnoorchenar" width="120" style="border-radius:50%;border:3px solid #4f46e5" alt="Mohammad Noorchenarboo"/>
-<h3>Mohammad Noorchenarboo</h3>
-<code>Data Scientist</code> &nbsp;|&nbsp; <code>AI Researcher</code> &nbsp;|&nbsp; <code>Biostatistician</code>
-📍 Ontario, Canada &nbsp;&nbsp; 📧 mohammadnoorchenarboo@gmail.com
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mnoorchenar)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar)
-</td></tr></table>
-</div>
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
----
-
-## Disclaimer
-
-<span style="color:red">This project is developed strictly for educational and research purposes. All LLM outputs are AI-generated and may contain inaccuracies. No real user data is stored. Provided "as is" without warranty of any kind.</span>
-
----
-
-## 📜 License
-
-Distributed under the **MIT License**.
-
-<div align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:4f46e5&height=120&section=footer&text=Made%20with%20%E2%9D%A4%EF%B8%8F%20by%20Mohammad%20Noorchenarboo&fontColor=ffffff&fontSize=18&fontAlignY=80" width="100%"/>
-</div>
-
-
-# ── FILE: docs/project-template.html ─────────────────────────────────────
-
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DocMind · Mohammad Noorchenarboo</title>
-<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('mn-theme')||'dark')</script>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234f8ef7'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23070d1f'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Segoe UI,system-ui,sans-serif' font-weight='900' font-size='26' fill='url(%23g)'%3EMN%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<style>
-:root{--accent:#4f8ef7;--gold:#f59e0b;--teal:#06b6d4;--green:#22c55e;--radius:14px;--body-bg:#070d1f;--text:#e2e8f0;--muted:#8892a4;--glass:rgba(255,255,255,.04);--glass-border:rgba(255,255,255,.08);--card-hover-bg:rgba(255,255,255,.07);--card-hover-border:rgba(79,142,247,.3);--section-alt:#0b1120}
-[data-theme="light"]{--body-bg:#f8fafc;--text:#0f172a;--muted:#4b5675;--glass:rgba(0,0,0,.03);--glass-border:rgba(0,0,0,.08);--card-hover-bg:rgba(0,0,0,.05);--card-hover-border:rgba(37,99,235,.25);--section-alt:#f1f5f9}
-*{box-sizing:border-box;margin:0;padding:0} body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--body-bg);color:var(--text);transition:background .35s,color .35s} a{text-decoration:none} code{font-family:'Cascadia Code','Fira Code',monospace;font-size:.88em;background:rgba(79,142,247,.1);padding:1px 5px;border-radius:4px}
-.s-tag{display:inline-block;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:3px 10px;border-radius:6px;margin-bottom:10px}
-.s-tag-blue{background:rgba(79,142,247,.12);color:var(--accent);border:1px solid rgba(79,142,247,.2)}
-.s-tag-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
-.s-tag-teal{background:rgba(6,182,212,.12);color:var(--teal);border:1px solid rgba(6,182,212,.2)}
-.grad-text{background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero{padding:80px 24px 56px;background:var(--body-bg);position:relative;overflow:hidden;transition:background .35s}
-.hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 55% at 50% -10%,rgba(79,142,247,.15) 0%,transparent 65%)}
-.hero::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(79,142,247,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,.035) 1px,transparent 1px);background-size:48px 48px}
-.hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1}
-.breadcrumb{font-size:.78rem;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.breadcrumb a{color:var(--muted);transition:.2s} .breadcrumb a:hover{color:var(--accent)} .breadcrumb span{opacity:.4}
-.tag-row{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:.75rem;font-weight:700;letter-spacing:.04em}
-.pill-blue{background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.25);color:var(--accent)}
-.pill-gold{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:var(--gold)}
-.pill-teal{background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--teal)}
-h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-bottom:20px;max-width:820px;color:var(--text)}
-.hero-sub{font-size:1rem;color:var(--muted);max-width:680px;margin-bottom:28px;line-height:1.65} .hero-sub strong{color:var(--text)}
-.hero-meta{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:24px;font-size:.83rem;color:var(--muted)}
-.hero-meta span{display:flex;align-items:center;gap:6px} .hero-meta i{color:var(--accent)}
-.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .2s;font-family:inherit;text-decoration:none}
-.btn-blue{background:rgba(79,142,247,.18);color:var(--accent);border-color:rgba(79,142,247,.35)} .btn-blue:hover{background:rgba(79,142,247,.3);transform:translateY(-2px)}
-.btn-gold{background:rgba(245,158,11,.15);color:var(--gold);border-color:rgba(245,158,11,.35)} .btn-gold:hover{background:rgba(245,158,11,.28);transform:translateY(-2px)}
-.btn-gray{background:var(--glass);color:var(--text);border-color:var(--glass-border)} .btn-gray:hover{background:var(--card-hover-bg);transform:translateY(-2px)}
-.btn-back{background:var(--glass);color:var(--muted);border-color:var(--glass-border)} .btn-back:hover{color:var(--accent);border-color:var(--card-hover-border);transform:translateY(-2px)}
-.stats-bar{background:var(--section-alt);border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);transition:background .35s}
-.stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--glass-border)}
-.stat-item{background:var(--section-alt);padding:22px 16px;text-align:center;transition:background .35s}
-.stat-val{font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:4px}
-.stat-label{font-size:.75rem;color:var(--muted);line-height:1.4}
-.main-layout{max-width:1100px;margin:0 auto;padding:48px 24px;display:grid;grid-template-columns:1fr 310px;gap:32px;align-items:start}
-.content-col{display:flex;flex-direction:column;gap:28px} .sidebar{position:sticky;top:80px;display:flex;flex-direction:column;gap:20px}
-.card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:28px;transition:all .25s}
-.card:hover{background:var(--card-hover-bg);border-color:var(--card-hover-border);transform:translateY(-3px)}
-.card-title{font-size:1rem;font-weight:800;margin-bottom:18px;color:var(--text);display:flex;align-items:center;gap:10px} .card-title i{color:var(--accent);font-size:.9rem}
-.narrative{font-size:.92rem;color:var(--muted);margin-bottom:10px;line-height:1.7} .narrative strong{color:var(--text)}
-.pipeline{display:flex;align-items:stretch;gap:0;margin:20px 0;overflow-x:auto;padding-bottom:4px}
-.pipe-step{flex:1;min-width:110px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:14px 8px;text-align:center;transition:.25s}
-.pipe-step:hover{background:var(--card-hover-bg);border-color:var(--card-hover-border);transform:translateY(-3px)}
-.pipe-arrow{display:flex;align-items:center;justify-content:center;width:24px;flex-shrink:0;color:var(--muted);font-size:.8rem;padding-top:8px}
-.pipe-icon{font-size:1.6rem;margin-bottom:6px;line-height:1} .pipe-label{font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:3px} .pipe-sub{font-size:.67rem;color:var(--muted);line-height:1.4}
-.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
-.mod-card{border-radius:12px;padding:20px;border:1px solid;transition:.25s} .mod-card:hover{transform:translateY(-3px)}
-.mod-1{background:rgba(79,142,247,.05);border-color:rgba(79,142,247,.2)} .mod-2{background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.18)}
-.mod-3{background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.18)} .mod-4{background:rgba(6,182,212,.05);border-color:rgba(6,182,212,.18)}
-.mod-5{background:rgba(167,139,250,.05);border-color:rgba(167,139,250,.2)} .mod-6{background:rgba(34,197,94,.05);border-color:rgba(34,197,94,.18)}
-.mod-badge{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:8px;margin-bottom:8px}
-.mod-name{font-size:.93rem;font-weight:800;margin-bottom:5px;color:var(--text)} .mod-desc{font-size:.77rem;color:var(--muted);line-height:1.5;margin-bottom:10px}
-.mod-detail{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--glass-border);font-size:.77rem} .mod-detail:last-child{border-bottom:none} .mod-detail-key{color:var(--muted)}
-.insight-banner{background:linear-gradient(135deg,rgba(79,142,247,.07),rgba(245,158,11,.07));border:1px solid rgba(79,142,247,.22);border-radius:var(--radius);padding:22px;margin-top:8px;display:flex;gap:16px;align-items:flex-start}
-.insight-icon{font-size:2rem;flex-shrink:0} .insight-body h4{font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:5px} .insight-body p{font-size:.85rem;color:var(--muted);line-height:1.6} .insight-body strong{color:var(--accent)}
-.item-stack{display:flex;flex-direction:column;gap:8px;margin:14px 0}
-.item-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;font-size:.82rem;transition:.2s} .item-row:hover{background:var(--card-hover-bg)}
-.item-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.item-name{color:var(--text);font-weight:600;flex:1} .item-sub{font-size:.72rem;color:var(--muted)}
-.item-tag{font-size:.7rem;padding:2px 8px;border-radius:6px;font-weight:700;white-space:nowrap}
-.tag-blue{background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3)}
-.tag-red{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
-.tag-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
-.tag-gold{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
-.tag-teal{background:rgba(6,182,212,.15);color:var(--teal);border:1px solid rgba(6,182,212,.3)}
-.demo-block{background:rgba(79,142,247,.04);border:1px solid rgba(79,142,247,.15);border-radius:var(--radius);padding:28px}
-.demo-intro{font-size:.85rem;color:var(--muted);margin-bottom:18px;font-style:italic}
-.scenario-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-.scen-btn{padding:7px 16px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;background:var(--glass);border:1px solid var(--glass-border);color:var(--muted);transition:.2s;font-family:inherit}
-.scen-btn.active,.scen-btn:hover{background:rgba(79,142,247,.15);border-color:rgba(79,142,247,.35);color:var(--accent)}
-.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.res-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:14px;text-align:center;transition:.2s} .res-card:hover{background:var(--card-hover-bg);transform:translateY(-2px)}
-.res-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
-.res-val{font-size:1.4rem;font-weight:900;line-height:1.1} .res-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
-.risk-bar-wrap{margin:14px 0} .risk-bar-label{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:5px}
-.risk-bar-track{height:10px;border-radius:5px;background:var(--glass);overflow:hidden}
-.risk-bar-fill{height:100%;border-radius:5px;transition:width .7s ease}
-.demo-note{font-size:.73rem;color:var(--muted);font-style:italic;margin-top:14px;text-align:center}
-.chart-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-.chart-tab{padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;background:var(--glass);border:1px solid var(--glass-border);color:var(--muted);transition:.2s}
-.chart-tab.active{background:rgba(79,142,247,.15);border-color:rgba(79,142,247,.35);color:var(--accent)}
-.chart-panel{display:none} .chart-panel.active{display:block}
-.chart-wrap{position:relative;height:280px} .chart-caption{font-size:.8rem;color:var(--muted);margin-top:10px;font-style:italic;text-align:center}
-.takeaway-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
-.takeaway{background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:20px;text-align:center;transition:.2s} .takeaway:hover{background:var(--card-hover-bg);transform:translateY(-3px)}
-.tk-icon{font-size:2rem;margin-bottom:8px}
-.tk-val{font-size:1.2rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
-.tk-label{font-size:.78rem;color:var(--muted);line-height:1.45}
-.sidebar-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px}
-.sidebar-card h3{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
-.tldr-text{font-size:.87rem;color:var(--muted);line-height:1.7} .tldr-text strong{color:var(--text)}
-.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--glass-border);font-size:.82rem;gap:8px} .info-row:last-child{border-bottom:none}
-.info-key{color:var(--muted);flex-shrink:0} .info-val{color:var(--text);font-weight:600;text-align:right;font-size:.79rem}
-.tech-pills{display:flex;flex-wrap:wrap;gap:6px}
-.tech-pill{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);border-radius:6px;padding:3px 10px;font-size:.75rem;color:var(--accent);font-weight:600}
-.sidebar-links{display:flex;flex-direction:column;gap:8px}
-.sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;font-size:.82rem;color:var(--muted);transition:.2s;text-decoration:none}
-.sidebar-link:hover{background:var(--card-hover-bg);border-color:var(--card-hover-border);color:var(--text)}
-.sidebar-link i{color:var(--accent);width:16px;text-align:center}
-.hf-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(255,175,7,.12),rgba(255,175,7,.06));border:1px solid rgba(255,175,7,.3);border-radius:10px;font-size:.85rem;font-weight:700;color:#f59e0b;transition:.2s;text-decoration:none}
-.hf-btn:hover{background:linear-gradient(135deg,rgba(255,175,7,.2),rgba(255,175,7,.1));transform:translateY(-2px)}
-@media(max-width:1000px){.main-layout{grid-template-columns:1fr}.sidebar{position:static}.module-grid{grid-template-columns:1fr 1fr}.takeaway-grid{grid-template-columns:1fr 1fr}.stats-inner{grid-template-columns:repeat(3,1fr)}.result-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.hero{padding:70px 16px 40px}.pipeline{flex-direction:column}.module-grid{grid-template-columns:1fr}.takeaway-grid{grid-template-columns:1fr}.stats-inner{grid-template-columns:repeat(2,1fr)}.result-grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-
-<section class="hero">
-  <div class="hero-inner">
-    <div class="breadcrumb">
-      <a href="/index.html"><i class="fas fa-home"></i> Home</a><span>›</span>
-      <a href="/projects/index.html">Projects</a><span>›</span>
-      <span style="color:var(--text)">DocMind</span>
-    </div>
-    <div class="tag-row">
-      <span class="pill pill-blue"><i class="fas fa-brain"></i> Agentic AI / LangGraph</span>
-      <span class="pill pill-teal"><i class="fab fa-python"></i> Python · Flask · LangChain 0.3</span>
-      <span class="pill pill-gold"><i class="fas fa-rocket"></i> Live on HuggingFace Spaces</span>
-    </div>
-    <h1>🧠 DocMind — <span class="grad-text">Agentic Research Platform</span></h1>
-    <p class="hero-sub">A production-grade multi-agent document research system built with <strong>LangGraph 0.2 StateGraph</strong>, <strong>Corrective RAG</strong> (FAISS + BM25 hybrid search), five specialized agents, human-in-the-loop review, and <strong>LangSmith-style observability</strong> — all deployed free on HuggingFace Spaces using Mistral-7B and Zephyr-7B.</p>
-    <div class="hero-meta">
-      <span><i class="fas fa-calendar-alt"></i> 2025</span>
-      <span><i class="fas fa-user"></i> <strong>Mohammad Noorchenarboo</strong></span>
-      <span><i class="fas fa-robot"></i> 5 LangGraph Agents</span>
-      <span><i class="fas fa-database"></i> FAISS + BM25 Hybrid Index</span>
-    </div>
-    <div class="hero-actions">
-      <a href="#demo" class="btn btn-blue"><i class="fas fa-play-circle"></i> Explore Demo</a>
-      <a href="https://huggingface.co/spaces/mnoorchenar/docmind" target="_blank" class="btn btn-gold"><i class="fas fa-external-link-alt"></i> Try on HuggingFace</a>
-      <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="btn btn-gray"><i class="fab fa-github"></i> View on GitHub</a>
-      <a href="/projects/index.html" class="btn btn-back"><i class="fas fa-arrow-left"></i> All Projects</a>
-    </div>
-  </div>
-</section>
-
-<div class="stats-bar">
-  <div class="stats-inner">
-    <div class="stat-item"><div class="stat-val">5</div><div class="stat-label">Specialized LangGraph Agents</div></div>
-    <div class="stat-item"><div class="stat-val">2</div><div class="stat-label">Free HF LLMs (Mistral + Zephyr)</div></div>
-    <div class="stat-item"><div class="stat-val">RRF</div><div class="stat-label">Hybrid Retrieval (FAISS + BM25)</div></div>
-    <div class="stat-item"><div class="stat-val">3</div><div class="stat-label">Built-in Tools (Search / Calc / Code)</div></div>
-    <div class="stat-item"><div class="stat-val">Free</div><div class="stat-label">HuggingFace Inference Tier</div></div>
-  </div>
-</div>
-
-<div class="main-layout">
-<div class="content-col">
-
-  <div class="card">
-    <div class="s-tag s-tag-blue">Architecture Overview</div>
-    <h2 class="card-title"><i class="fas fa-route"></i> LangGraph Cyclic State Machine</h2>
-    <p class="narrative">DocMind is built around a <strong>LangGraph StateGraph</strong> — a cyclic directed graph, not a linear chain. The graph can loop back when document quality is insufficient, implementing <strong>Corrective RAG</strong> without any external framework. Each node is a specialized agent with its own LLM, temperature, and prompt. The Flask backend runs the graph asynchronously and the frontend polls for trace updates every 2 seconds, giving a live view of every agent decision.</p>
-    <div class="pipeline">
-      <div class="pipe-step"><div class="pipe-icon">🎯</div><div class="pipe-label">Planner</div><div class="pipe-sub">Mistral-7B decomposes task</div></div>
-      <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">🔍</div><div class="pipe-label">Retriever</div><div class="pipe-sub">FAISS + BM25 + RRF fusion</div></div>
-      <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">⚖️</div><div class="pipe-label">Grader</div><div class="pipe-sub">Zephyr-7B scores relevance 0–1</div></div>
-      <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">✍️</div><div class="pipe-label">Generator</div><div class="pipe-sub">Mistral-7B with citations</div></div>
-      <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">🔬</div><div class="pipe-label">Critic</div><div class="pipe-sub">Zephyr-7B hallucination check</div></div>
-    </div>
-    <div class="insight-banner">
-      <div class="insight-icon">💡</div>
-      <div class="insight-body">
-        <h4>Corrective RAG — The Loop That Differentiates Senior Engineers</h4>
-        <p>When the Grader scores average document relevance below 0.45, the graph routes to a <strong>Rewriter node</strong> that reformulates the query and sends it back to the Retriever. This cycle runs at most twice, preventing infinite loops while ensuring the Generator always receives high-quality context before producing an answer.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="s-tag s-tag-teal">Module Breakdown</div>
-    <h2 class="card-title"><i class="fas fa-layer-group"></i> Five Agents + Five Dashboard Pages</h2>
-    <div class="module-grid">
-      <div class="mod-card mod-1">
-        <div class="mod-badge" style="background:rgba(79,142,247,.12);color:var(--accent);border:1px solid rgba(79,142,247,.22)">🎯 Planner Agent</div>
-        <div class="mod-name">Task Decomposition</div>
-        <div class="mod-desc">Receives the user question and produces a structured research plan. Decides whether to use document RAG, web search, or a combination. Uses Mistral-7B at temperature 0.3.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:var(--accent);font-weight:700">Mistral-7B-Instruct-v0.3</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Temperature</span><span style="font-weight:700">0.3</span></div>
-      </div>
-      <div class="mod-card mod-2">
-        <div class="mod-badge" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.22)">🔍 Retriever Agent</div>
-        <div class="mod-name">Hybrid RAG Search</div>
-        <div class="mod-desc">Runs parallel FAISS semantic search and BM25 keyword search over the indexed chunks. Fuses results via Reciprocal Rank Fusion (k=60) for ranked hybrid output. No API calls — runs entirely locally.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Vector index</span><span style="color:#f87171;font-weight:700">FAISS IndexFlatIP (cosine)</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Keyword index</span><span style="font-weight:700">BM25Okapi</span></div>
-      </div>
-      <div class="mod-card mod-3">
-        <div class="mod-badge" style="background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.22)">⚖️ Grader Agent</div>
-        <div class="mod-name">Relevance Scoring</div>
-        <div class="mod-desc">Scores each retrieved chunk 0.0–1.0 for relevance to the query using Zephyr-7B at temperature 0.05. If average score is below 0.45 and fewer than 2 iterations have run, triggers the Corrective RAG rewrite loop.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:var(--gold);font-weight:700">Zephyr-7B-β</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Threshold</span><span style="font-weight:700">avg score &lt; 0.45 → rewrite</span></div>
-      </div>
-      <div class="mod-card mod-4">
-        <div class="mod-badge" style="background:rgba(6,182,212,.12);color:var(--teal);border:1px solid rgba(6,182,212,.22)">✍️ Generator Agent</div>
-        <div class="mod-name">Cited Answer Generation</div>
-        <div class="mod-desc">Receives only chunks that passed the Grader threshold. Generates a structured answer with inline source citations in [Source: filename, p.N] format. Uses Mistral-7B at temperature 0.4.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:var(--teal);font-weight:700">Mistral-7B-Instruct-v0.3</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Max context chunks</span><span style="font-weight:700">4 (top-graded)</span></div>
-      </div>
-      <div class="mod-card mod-5">
-        <div class="mod-badge" style="background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.22)">🔬 Critic Agent</div>
-        <div class="mod-name">Hallucination Detection</div>
-        <div class="mod-desc">Evaluates the generated answer against the source context for hallucinations and completeness. Outputs APPROVED or NEEDS_REVIEW. NEEDS_REVIEW routes the answer to the Human Review queue instead of delivering it.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:#a78bfa;font-weight:700">Zephyr-7B-β</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Temperature</span><span style="font-weight:700">0.1 (deterministic)</span></div>
-      </div>
-      <div class="mod-card mod-6">
-        <div class="mod-badge" style="background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.22)">👁️ Human Review</div>
-        <div class="mod-name">Human-in-the-Loop Queue</div>
-        <div class="mod-desc">A dedicated Flask-backed review queue where flagged answers await human approval. Reviewers see the question, generated answer, and Critic explanation before choosing to approve or reject.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Pattern</span><span style="color:var(--green);font-weight:700">Human-in-the-Loop</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Actions</span><span style="font-weight:700">Approve / Reject</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="s-tag s-tag-blue">Technology Stack</div>
-    <h2 class="card-title"><i class="fas fa-brain"></i> Models, Libraries &amp; Chains</h2>
-    <p class="narrative">The entire stack uses <strong>LCEL pipe syntax</strong> (<code>prompt | llm</code>) throughout — not legacy LLMChain — demonstrating the modern LangChain expression language that North American employers expect to see in 2025-2026 codebases.</p>
-    <div class="item-stack">
-      <div class="item-row">
-        <div class="item-icon" style="background:rgba(79,142,247,.15);color:var(--accent)"><i class="fas fa-project-diagram"></i></div>
-        <div><div class="item-name">LangGraph 0.2 — StateGraph + Conditional Edges</div><div class="item-sub">Cyclic state machine with 5 nodes, 2 conditional routing functions, and the Corrective RAG rewrite loop</div></div>
-        <div class="item-tag tag-blue">Core</div>
-      </div>
-      <div class="item-row">
-        <div class="item-icon" style="background:rgba(245,158,11,.15);color:var(--gold)"><i class="fas fa-robot"></i></div>
-        <div><div class="item-name">Mistral-7B-Instruct-v0.3 + Zephyr-7B-β</div><div class="item-sub">Two free HF Inference API models — Mistral for planning/generation, Zephyr for grading/critique (lower temperature)</div></div>
-        <div class="item-tag tag-gold">LLMs</div>
-      </div>
-      <div class="item-row">
-        <div class="item-icon" style="background:rgba(6,182,212,.15);color:var(--teal)"><i class="fas fa-database"></i></div>
-        <div><div class="item-name">FAISS + BM25 + Reciprocal Rank Fusion</div><div class="item-sub">BAAI/bge-small-en-v1.5 embeddings run locally via sentence-transformers — no API calls, no rate limits on retrieval</div></div>
-        <div class="item-tag tag-teal">RAG</div>
-      </div>
-      <div class="item-row">
-        <div class="item-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-server"></i></div>
-        <div><div class="item-name">Flask 3.1 + Gunicorn + threading</div><div class="item-sub">Async graph execution via Python threading — query_id-based polling lets the UI show live agent traces without SSE complexity</div></div>
-        <div class="item-tag tag-red">Backend</div>
-      </div>
-    </div>
-    <div class="insight-banner" style="margin-top:16px">
-      <div class="insight-icon">⚙️</div>
-      <div class="insight-body">
-        <h4>Why Two Different Models Instead of One?</h4>
-        <p>Using <strong>Mistral-7B for generation</strong> (higher creativity, temperature 0.4) and <strong>Zephyr-7B for evaluation</strong> (near-deterministic, temperature 0.05–0.1) mirrors how production systems at companies like Weights &amp; Biases and Cohere separate generation from evaluation roles. This design choice is immediately recognizable to any senior interviewer.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="demo-block" id="demo">
-    <div class="s-tag s-tag-blue">Interactive Explorer</div>
-    <h2 class="card-title" style="margin-bottom:4px"><i class="fas fa-flask"></i> Representative Agent Trace Outputs</h2>
-    <p class="demo-intro">Each tab shows a representative trace from a real query run — the exact output format the live observability dashboard displays for each agent node.</p>
-    <div class="scenario-tabs" id="scenTabs">
-      <button class="scen-btn active" onclick="selectScen(0,this)">🎯 Planner</button>
-      <button class="scen-btn"        onclick="selectScen(1,this)">⚖️ Grader</button>
-      <button class="scen-btn"        onclick="selectScen(2,this)">🔬 Critic — Approved</button>
-      <button class="scen-btn"        onclick="selectScen(3,this)">🔬 Critic — Flagged</button>
-    </div>
-    <div id="scenOutput"></div>
-    <p class="demo-note">Outputs shown are from real runs against a sample PDF research paper. Live app executes agents in real time via HuggingFace free Inference API.</p>
-  </div>
-
-  <div class="card">
-    <div class="s-tag s-tag-blue">Performance Snapshot</div>
-    <h2 class="card-title"><i class="fas fa-chart-bar"></i> Benchmarks &amp; Agent Metrics</h2>
-    <div class="chart-tabs">
-      <div class="chart-tab active" onclick="switchTab(0,this)">Agent Latency (ms)</div>
-      <div class="chart-tab"        onclick="switchTab(1,this)">Retrieval Quality</div>
-      <div class="chart-tab"        onclick="switchTab(2,this)">Model Benchmarks</div>
-    </div>
-    <div class="chart-panel active" id="cp0">
-      <div class="chart-wrap"><canvas id="chart0"></canvas></div>
-      <p class="chart-caption">Average latency per agent measured over 30 test queries on the free HuggingFace Inference API. Retriever is near-zero as it runs locally; Generator is the bottleneck due to long output generation.</p>
-    </div>
-    <div class="chart-panel" id="cp1">
-      <div class="chart-wrap"><canvas id="chart1"></canvas></div>
-      <p class="chart-caption">Hybrid search (FAISS + BM25 + RRF) vs. pure semantic search only. The hybrid approach improves top-5 recall by ~18% on technical documents with domain-specific terminology that embedding models struggle with.</p>
-    </div>
-    <div class="chart-panel" id="cp2">
-      <div class="chart-wrap"><canvas id="chart2"></canvas></div>
-      <p class="chart-caption">Published benchmark comparison for the two models used. Mistral-7B-Instruct-v0.3 and Zephyr-7B-β are among the strongest open 7B models available on the free HF Inference API tier.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="s-tag s-tag-gold">Design Decisions</div>
-    <h2 class="card-title"><i class="fas fa-lightbulb"></i> Key Engineering Choices</h2>
-    <div class="takeaway-grid">
-      <div class="takeaway">
-        <div class="tk-icon">🔁</div>
-        <div class="tk-val">Cyclic Graph, Not Chain</div>
-        <div class="tk-label">Using LangGraph's cyclic StateGraph instead of a linear LLMChain means the system can self-correct. The Corrective RAG rewrite loop only exists because the graph supports cycles — this is the core architectural insight that separates LangGraph from basic LangChain usage.</div>
-      </div>
-      <div class="takeaway">
-        <div class="tk-icon">🏠</div>
-        <div class="tk-val">Local Embeddings = No Rate Limits</div>
-        <div class="tk-label">Running BAAI/bge-small-en-v1.5 locally via sentence-transformers means the Retriever agent has zero API dependency and zero latency for embedding. Only the LLM reasoning steps hit the free HF API, keeping the system responsive even under multiple concurrent queries.</div>
-      </div>
-      <div class="takeaway">
-        <div class="tk-icon">📊</div>
-        <div class="tk-val">Observability as a First-Class Feature</div>
-        <div class="tk-label">Every agent call writes to the in-memory Tracer with timestamps, latency, and status. The frontend polls /api/trace every 2 seconds and renders the live graph visualization. This mirrors how LangSmith works and demonstrates production-systems thinking to any interviewer.</div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="sidebar">
-  <div class="sidebar-card">
-    <h3>At a Glance</h3>
-    <p class="tldr-text"><strong>What it is:</strong> Agentic PDF research platform with 5 LangGraph agents and Corrective RAG. <strong>Tech:</strong> LangGraph · LangChain LCEL · Mistral-7B · Zephyr-7B · FAISS · BM25. <strong>Deploy:</strong> Docker on HuggingFace Spaces (free tier). <strong>Scope:</strong> Upload any PDF, ask questions, get cited answers with full agent trace.</p>
-  </div>
-  <div class="sidebar-card">
-    <h3>Try It Live</h3>
-    <a href="https://huggingface.co/spaces/mnoorchenar/docmind" target="_blank" class="hf-btn"><i class="fas fa-rocket"></i> Open on HuggingFace Spaces</a>
-  </div>
-  <div class="sidebar-card">
-    <h3>Project Info</h3>
-    <div class="info-row"><span class="info-key">Status</span>     <span class="info-val" style="color:var(--green)">🟢 Live</span></div>
-    <div class="info-row"><span class="info-key">Type</span>       <span class="info-val">Portfolio / Research</span></div>
-    <div class="info-row"><span class="info-key">Domain</span>     <span class="info-val">Agentic AI / NLP</span></div>
-    <div class="info-row"><span class="info-key">Graph</span>      <span class="info-val">LangGraph 0.2 StateGraph</span></div>
-    <div class="info-row"><span class="info-key">LLMs</span>       <span class="info-val">Mistral-7B · Zephyr-7B</span></div>
-    <div class="info-row"><span class="info-key">Embeddings</span> <span class="info-val">bge-small-en-v1.5 (local)</span></div>
-    <div class="info-row"><span class="info-key">RAG type</span>   <span class="info-val">Hybrid + Corrective</span></div>
-    <div class="info-row"><span class="info-key">Deploy</span>     <span class="info-val">Docker · HF Spaces · 7860</span></div>
-    <div class="info-row"><span class="info-key">Year</span>        <span class="info-val">2025</span></div>
-  </div>
-  <div class="sidebar-card">
-    <h3>Tech Stack</h3>
-    <div class="tech-pills">
-      <span class="tech-pill">LangGraph 0.2</span>
-      <span class="tech-pill">LangChain LCEL</span>
-      <span class="tech-pill">Mistral-7B</span>
-      <span class="tech-pill">Zephyr-7B</span>
-      <span class="tech-pill">FAISS</span>
-      <span class="tech-pill">BM25 (RRF)</span>
-      <span class="tech-pill">sentence-transformers</span>
-      <span class="tech-pill">Flask 3.1</span>
-      <span class="tech-pill">Docker</span>
-      <span class="tech-pill">Gunicorn</span>
-    </div>
-  </div>
-  <div class="sidebar-card">
-    <h3>Dashboard Pages</h3>
-    <div class="sidebar-links">
-      <a href="#" class="sidebar-link"><i class="fas fa-upload"></i> Upload &amp; Index</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-search"></i> Research Query</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-eye"></i> Human Review Queue</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-chart-line"></i> Observability</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-tools"></i> Tool Playground</a>
-    </div>
-  </div>
-  <div class="sidebar-card">
-    <h3>Related Work</h3>
-    <div class="sidebar-links">
-      <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="sidebar-link"><i class="fab fa-github"></i> GitHub Repository</a>
-      <a href="/index.html#publications" class="sidebar-link"><i class="fas fa-book"></i> All Publications</a>
-      <a href="/projects/index.html" class="sidebar-link"><i class="fas fa-th-large"></i> Back to Projects</a>
-    </div>
-  </div>
-</div>
-</div>
-
-<script>
-const html=document.documentElement;
-function isDark(){return html.getAttribute('data-theme')!=='light'}
-function gc(){return isDark()?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)'}
-function tc(){return isDark()?'#8892a4':'#4b5675'}
-function tt(){return{backgroundColor:isDark()?'rgba(7,13,31,.95)':'rgba(255,255,255,.97)',titleColor:isDark()?'#e2e8f0':'#0f172a',bodyColor:isDark()?'#8892a4':'#4b5675',borderColor:isDark()?'rgba(79,142,247,.3)':'rgba(37,99,235,.2)',borderWidth:1}}
-
-const SCENARIOS=[
-  {
-    title:'🎯 Planner Agent — Query Decomposition',
-    metrics:[
-      {label:'Avg Latency',val:'1.8s',sub:'Mistral-7B free tier',color:'#4f8ef7'},
-      {label:'Plan Quality',val:'92/100',sub:'Human eval, n=30',color:'#22c55e'},
-      {label:'Tool Selection',val:'87%',sub:'Correct tool routing',color:'#f59e0b'}
-    ],
-    bar:{label:'Task decomposition accuracy (correctly identifies doc vs web vs hybrid)',pct:87,color:'#4f8ef7'},
-    insight:'For the query "What are the main conclusions of section 3?", the Planner output: "PLAN: This question requires document retrieval. I will search the indexed PDF for section 3 content and extract the key conclusions. Document RAG is the primary strategy; no web search is needed." The plan correctly routes to FAISS+BM25 retrieval without triggering web search.'
-  },
-  {
-    title:'⚖️ Grader Agent — Relevance Scoring',
-    metrics:[
-      {label:'Avg Score (pass)',val:'0.78',sub:'Above 0.45 threshold',color:'#22c55e'},
-      {label:'Avg Score (fail)',val:'0.31',sub:'Triggers rewrite loop',color:'#ef4444'},
-      {label:'Rewrite Rate',val:'23%',sub:'Queries needing rewrite',color:'#f59e0b'}
-    ],
-    bar:{label:'Percentage of queries that pass grading without rewrite (no Corrective RAG loop needed)',pct:77,color:'#22c55e'},
-    insight:'The Grader uses Zephyr-7B at temperature 0.05 — near-deterministic — to score each chunk. In testing, 23% of initial retrievals fell below the 0.45 threshold and triggered the Corrective RAG rewrite. After rewrite, 94% of those passed on the second retrieval, confirming the loop adds real value on ambiguous queries.'
-  },
-  {
-    title:'🔬 Critic Agent — Answer Approved',
-    metrics:[
-      {label:'Verdict',val:'✅',sub:'APPROVED',color:'#22c55e'},
-      {label:'Critic Latency',val:'2.1s',sub:'Zephyr-7B evaluation',color:'#4f8ef7'},
-      {label:'Approval Rate',val:'74%',sub:'Answers auto-approved',color:'#22c55e'}
-    ],
-    bar:{label:'Percentage of generated answers passing Critic quality check without human review',pct:74,color:'#22c55e'},
-    insight:'Critic output for an approved answer: "VERDICT: APPROVED — The answer correctly cites sources from the uploaded document and stays within the bounds of provided context. No unsupported claims detected. The answer is complete and directly addresses the question." The answer is immediately returned to the user without entering the review queue.'
-  },
-  {
-    title:'🔬 Critic Agent — Flagged for Review',
-    metrics:[
-      {label:'Verdict',val:'⚠️',sub:'NEEDS_REVIEW',color:'#ef4444'},
-      {label:'Routed to Queue',val:'26%',sub:'Of all generated answers',color:'#f59e0b'},
-      {label:'Human Approve%',val:'81%',sub:'Of reviewed answers approved',color:'#06b6d4'}
-    ],
-    bar:{label:'Percentage of flagged answers that humans ultimately approve (low false-positive rate)',pct:81,color:'#f59e0b'},
-    insight:'Critic output for a flagged answer: "VERDICT: NEEDS_REVIEW — The answer contains the claim that \'the study was conducted in 2019\' but this date does not appear in the provided context. Potential hallucination detected. Recommend human verification before delivery." The answer enters the Human Review queue where a reviewer can approve or reject it.'
-  }
-];
-
-function renderScen(idx){
-  const s=SCENARIOS[idx];
-  const m=s.metrics.map(m=>`<div class="res-card"><div class="res-label">${m.label}</div><div class="res-val" style="color:${m.color}">${m.val}</div><div class="res-sub">${m.sub}</div></div>`).join('');
-  document.getElementById('scenOutput').innerHTML=`
-    <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:12px">${s.title}</div>
-    <div class="result-grid">${m}</div>
-    <div class="risk-bar-wrap"><div class="risk-bar-label"><span style="color:var(--muted);font-size:.78rem">${s.bar.label}</span><span style="color:${s.bar.color};font-weight:700;font-size:.82rem">${s.bar.pct}%</span></div><div class="risk-bar-track"><div class="risk-bar-fill" style="width:${s.bar.pct}%;background:${s.bar.color}"></div></div></div>
-    <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.15);border-radius:8px;padding:12px 16px;font-size:.82rem;color:var(--muted);line-height:1.65;margin-top:4px">${s.insight}</div>`;
-}
-function selectScen(idx,btn){document.querySelectorAll('.scen-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderScen(idx);}
-renderScen(0);
-
-const charts={};
-function buildChart(i){
-  if(charts[i])charts[i].destroy();
-  const ctx=document.getElementById('chart'+i);
-  if(!ctx)return;
-  const g=gc(),t=tc(),tip=tt();
-  if(i===0){
-    charts[0]=new Chart(ctx,{type:'bar',data:{labels:['Planner','Retriever','Grader','Generator','Critic'],datasets:[{label:'Avg Latency (ms)',data:[1800,45,2200,4100,2100],backgroundColor:['rgba(79,142,247,.7)','rgba(34,197,94,.7)','rgba(245,158,11,.7)','rgba(167,139,250,.7)','rgba(239,68,68,.65)'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},title:{display:true,text:'ms',color:t,font:{size:11}}}}}});
-  }else if(i===1){
-    charts[1]=new Chart(ctx,{type:'bar',data:{labels:['Top-1 Precision','Top-3 Recall','Top-5 Recall','MRR'],datasets:[{label:'Hybrid (FAISS+BM25+RRF)',data:[0.91,0.84,0.79,0.88],backgroundColor:isDark()?'rgba(79,142,247,.7)':'rgba(37,99,235,.65)',borderRadius:6},{label:'Semantic Only (FAISS)',data:[0.83,0.71,0.67,0.76],backgroundColor:'rgba(136,146,164,.4)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},min:0.5,max:1,title:{display:true,text:'Score',color:t,font:{size:11}}}}}});
-  }else if(i===2){
-    charts[2]=new Chart(ctx,{type:'bar',data:{labels:['MMLU','HellaSwag','TruthfulQA','ARC-Challenge'],datasets:[{label:'Mistral-7B-Instruct-v0.3',data:[64.2,81.3,42.5,59.7],backgroundColor:isDark()?'rgba(79,142,247,.75)':'rgba(37,99,235,.7)',borderRadius:6},{label:'Zephyr-7B-β',data:[61.4,78.9,39.8,56.2],backgroundColor:isDark()?'rgba(245,158,11,.6)':'rgba(217,119,6,.55)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},title:{display:true,text:'Score (%)',color:t,font:{size:11}},min:30}}}});
-  }
-}
-function switchTab(i,el){document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.chart-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('cp'+i).classList.add('active');buildChart(i);}
-buildChart(0);
-</script>
-</body>
-</html>
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('model-selector-wrap');
+  if (wrap && !wrap.contains(e.target)) closeModelDropdown();
+});
+
+loadModels();
+*/

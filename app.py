@@ -12,6 +12,7 @@ from tracing.tracer import Tracer
 from tools.web_search import web_search
 from tools.calculator import calculate
 from tools.code_tool  import run_code
+from agents.llm_factory import AVAILABLE_MODELS, get_current_model_key, set_current_model, get_current_model_id
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
@@ -51,7 +52,29 @@ def health():
         "chunks_stored": vector_store.chunk_count,
         "source":        vector_store.source_label,
         "token_set":     bool(os.getenv("HF_TOKEN")),
+        "active_model":  get_current_model_key(),
+        "active_model_id": get_current_model_id(),
     })
+
+
+@app.route("/api/models")
+def api_models():
+    current = get_current_model_key()
+    return jsonify({
+        "models":  AVAILABLE_MODELS,
+        "current": current,
+    })
+
+
+@app.route("/api/set_model", methods=["POST"])
+def api_set_model():
+    data = request.json or {}
+    key  = (data.get("model_key") or "").strip()
+    try:
+        set_current_model(key)
+        return jsonify({"success": True, "model_key": key, "model_id": get_current_model_id()})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @app.route("/api/upload", methods=["POST"])
@@ -225,6 +248,7 @@ def stats():
         "queries_run":     len(queries),
         "queries_complete":sum(1 for q in queries.values() if q["status"] == "complete"),
         "pending_review":  sum(1 for q in queries.values() if q["status"] == "pending_review"),
+        "active_model":    get_current_model_key(),
     })
 
 

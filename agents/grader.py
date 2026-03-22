@@ -11,8 +11,7 @@ Document excerpt: {document}
 Relevance score:"""
 
 def grade_document(question: str, document: str) -> float:
-    llm    = make_llm("HuggingFaceH4/zephyr-7b-beta", max_new_tokens=10, temperature=0.05)
-    chain  = PromptTemplate(input_variables=["question", "document"], template=_TEMPLATE) | llm
+    chain  = PromptTemplate(input_variables=["question","document"], template=_TEMPLATE) | make_llm(max_new_tokens=10, temperature=0.05)
     result = chain.invoke({"question": question, "document": document[:800]})
     raw    = result.strip() if isinstance(result, str) else str(result).strip()
     nums   = re.findall(r"[0-9]+\.?[0-9]*", raw)

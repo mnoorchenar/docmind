@@ -10,8 +10,7 @@ Question: {question}
 Plan:"""
 
 def run_planner(question: str) -> str:
-    llm    = make_llm("mistralai/Mistral-7B-Instruct-v0.3", max_new_tokens=200, temperature=0.3)
-    chain  = PromptTemplate(input_variables=["question"], template=_TEMPLATE) | llm
+    chain  = PromptTemplate(input_variables=["question"], template=_TEMPLATE) | make_llm(max_new_tokens=200, temperature=0.3)
     result = chain.invoke({"question": question})
     return result.strip() if isinstance(result, str) else str(result).strip()
 

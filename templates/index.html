@@ -212,6 +212,27 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .tool-name{font-size:.88rem;font-weight:800;margin-bottom:4px}
 .tool-desc{font-size:.74rem;color:var(--muted);margin-bottom:12px;line-height:1.5}
 
+/* ── MODEL SELECTOR ── */
+#model-selector-wrap{position:relative}
+#model-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:700;color:var(--text);transition:all .18s;white-space:nowrap}
+#model-pill:hover{background:var(--hbg);border-color:var(--hbd)}
+#model-pill .model-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+#model-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;width:320px;background:var(--sb);border:1px solid var(--border);border-radius:var(--r);z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden}
+#model-dropdown.open{display:block;animation:fadeIn .18s ease}
+.model-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
+.model-opt:last-child{border-bottom:none}
+.model-opt:hover{background:var(--hbg)}
+.model-opt.active{background:rgba(79,142,247,.1)}
+.model-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:2px}
+.model-opt-name{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.model-opt-desc{font-size:.72rem;color:var(--muted);line-height:1.4}
+.model-opt-meta{display:flex;gap:6px;margin-top:5px}
+.model-meta-tag{font-size:.65rem;padding:1px 7px;border-radius:5px;font-weight:700}
+.speed-fast  {background:rgba(34,197,94,.12);color:var(--green)}
+.speed-medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.speed-slow  {background:rgba(239,68,68,.12);color:var(--red)}
+.params-tag  {background:rgba(79,142,247,.1);color:var(--accent)}
+
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
   #sb{width:52px;min-width:52px}
@@ -258,6 +279,19 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 <div id="topbar">
   <div id="topbar-title"><i class="fas fa-wand-magic-sparkles"></i><span id="topbar-label">Overview</span></div>
   <div class="topbar-right">
+    <!-- Model selector -->
+    <div id="model-selector-wrap">
+      <div id="model-pill" onclick="toggleModelDropdown()">
+        <span class="model-dot"></span>
+        <span id="model-pill-label">Loading…</span>
+        <i class="fas fa-chevron-down" style="font-size:.6rem;color:var(--muted)"></i>
+      </div>
+      <div id="model-dropdown">
+        <div style="padding:10px 16px 8px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)">Select Model — All Free Tier</div>
+        <div id="model-opts-list"></div>
+      </div>
+    </div>
+
     <div class="icon-btn" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon" id="theme-icon"></i></div>
     <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="icon-btn" title="GitHub"><i class="fab fa-github"></i></a>
   </div>
@@ -940,6 +974,77 @@ function copyText(id,btn){
     setTimeout(()=>{btn.innerHTML='<i class="fas fa-copy"></i> Copy';},1800);
   });
 }
+
+// ── MODEL SELECTOR ────────────────────────────────────────────────────────────
+
+const MODEL_ICONS = {
+  "zephyr-7b": "🦅",
+  "phi3-mini":  "🔷",
+  "gemma2-2b":  "💎",
+  "falcon-7b":  "🦅",
+  "mistral-v2": "🌀",
+};
+
+let modelsData = {};
+
+async function loadModels() {
+  try {
+    const r = await fetch('/api/models');
+    const d = await r.json();
+    modelsData = d.models;
+    renderModelOpts(d.models, d.current);
+    updateModelPill(d.current, d.models);
+  } catch(e) {}
+}
+
+function renderModelOpts(models, current) {
+  const list = document.getElementById('model-opts-list');
+  list.innerHTML = Object.entries(models).map(([key, m]) => `
+    <div class="model-opt ${key===current?'active':''}" onclick="selectModel('${key}')">
+      <div class="model-opt-icon" style="background:rgba(79,142,247,.1)">${MODEL_ICONS[key]||'🤖'}</div>
+      <div>
+        <div class="model-opt-name">${m.label}</div>
+        <div class="model-opt-desc">${m.description}</div>
+        <div class="model-opt-meta">
+          <span class="model-meta-tag speed-${m.speed}">${m.speed}</span>
+          <span class="model-meta-tag params-tag">${m.params}</span>
+          ${key===current ? '<span class="model-meta-tag" style="background:rgba(34,197,94,.12);color:var(--green)">✓ active</span>' : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateModelPill(key, models) {
+  const m = models[key];
+  if (!m) return;
+  document.getElementById('model-pill-label').textContent = m.label;
+}
+
+async function selectModel(key) {
+  try {
+    const r = await fetch('/api/set_model', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model_key: key})});
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    renderModelOpts(modelsData, key);
+    updateModelPill(key, modelsData);
+    closeModelDropdown();
+  } catch(e) {}
+}
+
+function toggleModelDropdown() {
+  document.getElementById('model-dropdown').classList.toggle('open');
+}
+function closeModelDropdown() {
+  document.getElementById('model-dropdown').classList.remove('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('model-selector-wrap');
+  if (wrap && !wrap.contains(e.target)) closeModelDropdown();
+});
+
+loadModels();
 </script>
 </body>
 </html>

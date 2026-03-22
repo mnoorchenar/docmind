@@ -17,8 +17,8 @@ def run_generator(question: str, documents: list) -> str:
         for d in documents
     ]
     context = "\n\n".join(context_parts) if context_parts else "No context available."
-    llm     = make_llm("mistralai/Mistral-7B-Instruct-v0.3", max_new_tokens=512, temperature=0.4)
-    chain   = PromptTemplate(input_variables=["question", "context"], template=_TEMPLATE) | llm
+    chain   = PromptTemplate(input_variables=["question","context"], template=_TEMPLATE) | make_llm(max_new_tokens=512, temperature=0.4)
     result  = chain.invoke({"question": question, "context": context})
     return result.strip() if isinstance(result, str) else str(result).strip()
+
 
