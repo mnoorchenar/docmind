@@ -1,1083 +1,233 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🧠 DocMind — Agentic Research Platform</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<style>
-:root{
-  --bg:#070d1f;--sb:#0b1120;--card:rgba(255,255,255,.04);
-  --border:rgba(255,255,255,.08);--hbg:rgba(255,255,255,.07);
-  --hbd:rgba(79,142,247,.3);--text:#e2e8f0;--muted:#8892a4;
-  --accent:#4f8ef7;--gold:#f59e0b;--teal:#06b6d4;--green:#22c55e;
-  --red:#ef4444;--purple:#a78bfa;--sw:250px;--r:12px;
-  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
-}
-[data-theme="light"]{
-  --bg:#f8fafc;--sb:#f1f5f9;--card:rgba(0,0,0,.03);--border:rgba(0,0,0,.08);
-  --hbg:rgba(0,0,0,.05);--hbd:rgba(37,99,235,.25);--text:#0f172a;--muted:#4b5675;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;transition:background .3s,color .3s}
-a{text-decoration:none}
-code{font-family:var(--mono);font-size:.86em;background:rgba(79,142,247,.1);padding:2px 6px;border-radius:4px}
-
-/* ── SIDEBAR ── */
-#sb{width:var(--sw);min-width:var(--sw);height:100vh;background:var(--sb);border-right:1px solid var(--border);position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;overflow:hidden;transition:background .3s}
-.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.sb-logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4f8ef7,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.sb-logo-text{font-size:.88rem;font-weight:900;line-height:1.2}
-.sb-logo-sub{font-size:.65rem;color:var(--muted);font-weight:500}
-.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
-.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .18s;border:1px solid transparent;white-space:nowrap}
-.nav-item i{width:17px;text-align:center;font-size:.82rem}
-.nav-item:hover{background:var(--hbg);color:var(--text)}
-.nav-item.active{background:rgba(79,142,247,.12);color:var(--accent);border-color:rgba(79,142,247,.2)}
-.nav-sep{height:1px;background:var(--border);margin:6px 4px}
-.sb-footer{padding:12px 14px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted)}
-.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ── MAIN ── */
-#main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
-#topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);transition:background .3s}
-#topbar-title{font-size:.9rem;font-weight:800;display:flex;align-items:center;gap:8px}
-#topbar-title i{color:var(--accent)}
-.topbar-right{display:flex;align-items:center;gap:8px}
-.icon-btn{width:32px;height:32px;border-radius:7px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.78rem;color:var(--muted);transition:all .18s}
-.icon-btn:hover{background:var(--hbg);color:var(--text)}
-
-/* ── PAGES ── */
-.page{display:none;padding:24px;animation:fadeIn .22s ease}
-.page.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-/* ── CARDS ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:border-color .2s,background .2s}
-.card+.card{margin-top:18px}
-.card:hover{background:var(--hbg);border-color:var(--hbd)}
-.card-title{font-size:.92rem;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card-title i{color:var(--accent)}
-.s-tag{display:inline-block;font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:5px;margin-bottom:9px}
-.s-tag-blue{background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)}
-.s-tag-gold{background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
-.s-tag-teal{background:rgba(6,182,212,.1);color:var(--teal);border:1px solid rgba(6,182,212,.2)}
-.grad{background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-
-/* ── FORM ── */
-textarea,input[type="text"],input[type="file"]{width:100%;background:rgba(0,0,0,.25);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-family:var(--font);font-size:.86rem;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
-[data-theme="light"] textarea,[data-theme="light"] input[type="text"]{background:rgba(255,255,255,.7)}
-textarea:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.1)}
-textarea{min-height:80px}
-label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
-.field{margin-bottom:14px}
-
-/* ── TABS ── */
-.tab-bar{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
-.tab-btn{padding:7px 16px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--muted);transition:.18s;font-family:var(--font)}
-.tab-btn.active{background:rgba(79,142,247,.12);color:var(--accent);border-color:rgba(79,142,247,.3)}
-.tab-panel{display:none}
-.tab-panel.active{display:block}
-
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .18s;font-family:var(--font);white-space:nowrap}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
-.btn-primary{background:linear-gradient(135deg,rgba(79,142,247,.22),rgba(6,182,212,.16));color:var(--accent);border-color:rgba(79,142,247,.38)}
-.btn-primary:hover:not(:disabled){background:linear-gradient(135deg,rgba(79,142,247,.35),rgba(6,182,212,.25));transform:translateY(-1px)}
-.btn-green{background:rgba(34,197,94,.12);color:var(--green);border-color:rgba(34,197,94,.3)}
-.btn-green:hover:not(:disabled){background:rgba(34,197,94,.22);transform:translateY(-1px)}
-.btn-red{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.3)}
-.btn-red:hover:not(:disabled){background:rgba(239,68,68,.22);transform:translateY(-1px)}
-.btn-ghost{background:var(--card);color:var(--muted);border-color:var(--border)}
-.btn-ghost:hover:not(:disabled){background:var(--hbg);color:var(--text)}
-.btn-sm{padding:5px 12px;font-size:.74rem}
-.btn-gold{background:rgba(245,158,11,.12);color:var(--gold);border-color:rgba(245,158,11,.3)}
-.btn-gold:hover:not(:disabled){background:rgba(245,158,11,.22);transform:translateY(-1px)}
-
-/* ── OUTPUT ── */
-.output-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.86rem;line-height:1.7;color:var(--text);min-height:70px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s}
-[data-theme="light"] .output-box{background:rgba(255,255,255,.6)}
-.output-box.lit{border-color:rgba(79,142,247,.25)}
-
-/* ── SPINNER ── */
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-row{display:flex;align-items:center;gap:9px;padding:10px 0;color:var(--muted);font-size:.83rem}
-
-/* ── ERROR ── */
-.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:10px 14px;color:#fca5a5;font-size:.82rem;margin-top:8px;display:flex;gap:9px;align-items:flex-start}
-.err-box i{color:var(--red);margin-top:2px;flex-shrink:0}
-
-/* ── SUCCESS BOX ── */
-.ok-box{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:10px 14px;color:#86efac;font-size:.83rem;margin-top:10px}
-
-/* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
-.stat-item{background:var(--card);padding:16px 10px;text-align:center}
-.stat-v{font-size:1.5rem;font-weight:900;line-height:1;margin-bottom:3px}
-.stat-l{font-size:.68rem;color:var(--muted)}
-
-/* ── HOME GRID ── */
-.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
-.home-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .2s;text-align:left}
-.home-card:hover{background:var(--hbg);border-color:var(--hbd);transform:translateY(-3px)}
-.home-card-icon{font-size:1.7rem;margin-bottom:9px}
-.home-card-name{font-size:.88rem;font-weight:800;color:var(--text);margin-bottom:4px}
-.home-card-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
-
-/* ── DEMO CARDS (industry examples) ── */
-.demo-section{margin-bottom:20px}
-.demo-section-title{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:7px}
-.demo-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.demo-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.demo-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.demo-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
-.demo-card:hover{transform:translateY(-2px);border-color:var(--hbd)}
-.demo-card:hover::before{opacity:1}
-.demo-card-icon{font-size:1.4rem;margin-bottom:7px}
-.demo-card-industry{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.demo-card-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3}
-.demo-card-q{font-size:.73rem;color:var(--muted);line-height:1.45;margin-bottom:9px}
-.demo-card-meta{display:flex;gap:6px;flex-wrap:wrap}
-.demo-card-tag{font-size:.65rem;padding:2px 7px;border-radius:5px;font-weight:700}
-.demo-card-src{font-size:.62rem;color:var(--muted);margin-top:8px;padding-top:7px;border-top:1px solid var(--border);display:flex;align-items:center;gap:5px;overflow:hidden}
-.demo-card-src span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.demo-card::after{content:'▶  Click to run full demo';position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(18,20,28,.96) 40%);color:var(--accent);font-size:.67rem;font-weight:700;text-align:center;padding:22px 8px 10px;opacity:0;transition:opacity .25s;pointer-events:none;border-radius:0 0 10px 10px}
-.demo-card:hover::after{opacity:1}
-.demo-card.demo-loading{border-color:var(--accent)!important;pointer-events:none!important}
-.demo-card.demo-loading::after{content:'';top:8px;right:8px;bottom:unset;left:unset;width:11px;height:11px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:demo-spin .75s linear infinite;background:none;padding:0;opacity:1}
-@keyframes demo-spin{to{transform:rotate(360deg)}}
-
-/* ── SOURCE BAR ── */
-#source-bar{background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.18);border-radius:8px;padding:9px 14px;margin-bottom:16px;display:none;font-size:.82rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#source-bar i{color:var(--accent);flex-shrink:0}
-#source-bar-text{flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#source-bar-chunks{font-size:.72rem;color:var(--teal);white-space:nowrap}
-
-/* ── AGENT GRAPH ── */
-#agent-graph-wrap{width:100%;overflow-x:auto;margin:18px 0}
-#agent-graph{width:100%;max-width:700px;height:200px;display:block;margin:0 auto}
-.ag-node{transition:all .4s}
-.ag-node-idle    rect{fill:rgba(136,146,164,.07);stroke:rgba(136,146,164,.3);stroke-width:1.5}
-.ag-node-running rect{fill:rgba(79,142,247,.15);stroke:var(--accent);stroke-width:2;filter:drop-shadow(0 0 6px rgba(79,142,247,.5))}
-.ag-node-complete rect{fill:rgba(34,197,94,.1);stroke:var(--green);stroke-width:1.5}
-.ag-node-error   rect{fill:rgba(239,68,68,.1);stroke:var(--red);stroke-width:1.5}
-.ag-node-running .ag-pulse{animation:nodePulse 1.2s ease infinite}
-@keyframes nodePulse{0%,100%{opacity:.6}50%{opacity:1}}
-.ag-label{font-size:10px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
-.ag-sub{font-size:8.5px;fill:var(--muted);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
-.ag-arrow{stroke:rgba(136,146,164,.35);stroke-width:1.5;fill:none;marker-end:url(#arrow)}
-
-/* ── TRACE LOG ── */
-#trace-log{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;padding-right:4px}
-.trace-step{display:flex;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.8rem;animation:fadeIn .2s ease}
-.trace-badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:800;text-transform:uppercase;flex-shrink:0;white-space:nowrap;min-width:70px}
-.badge-planner  {background:rgba(79,142,247,.15);color:var(--accent)}
-.badge-retriever{background:rgba(6,182,212,.15);color:var(--teal)}
-.badge-grader   {background:rgba(245,158,11,.15);color:var(--gold)}
-.badge-rewriter {background:rgba(239,68,68,.12);color:var(--red)}
-.badge-generator{background:rgba(167,139,250,.15);color:var(--purple)}
-.badge-critic   {background:rgba(239,68,68,.15);color:var(--red)}
-.badge-human_review{background:rgba(34,197,94,.12);color:var(--green)}
-.trace-msg{color:var(--muted);flex:1;line-height:1.5}
-.trace-ts{font-size:.68rem;color:var(--muted);opacity:.6;flex-shrink:0}
-.trace-lat{font-size:.68rem;color:var(--teal);flex-shrink:0;white-space:nowrap}
-
-/* ── ANSWER CARD ── */
-#answer-card{display:none;margin-top:18px}
-.source-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.source-chip{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);border-radius:6px;padding:2px 9px;font-size:.72rem;color:var(--accent);font-weight:600}
-
-/* ── REVIEW CARDS ── */
-#review-list{display:flex;flex-direction:column;gap:14px}
-.review-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.review-card-q{font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:8px}
-.review-card-a{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;white-space:pre-wrap}
-.review-card-c{font-size:.76rem;color:var(--red);margin-bottom:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:6px;padding:8px 12px}
-.review-actions{display:flex;gap:8px}
-
-/* ── OBS ── */
-.obs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.obs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
-.obs-val{font-size:1.6rem;font-weight:900;margin-bottom:4px}
-.obs-lbl{font-size:.72rem;color:var(--muted)}
-.chart-wrap{position:relative;height:260px}
-
-/* ── UPLOAD DROP ZONE ── */
-#drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s}
-#drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,.06)}
-#drop-zone i{font-size:2rem;color:var(--muted);margin-bottom:9px;display:block}
-#drop-zone p{color:var(--muted);font-size:.84rem}
-
-/* ── TOOL PLAYGROUND ── */
-.tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.tool-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.tool-icon{font-size:1.8rem;margin-bottom:8px}
-.tool-name{font-size:.88rem;font-weight:800;margin-bottom:4px}
-.tool-desc{font-size:.74rem;color:var(--muted);margin-bottom:12px;line-height:1.5}
-
-/* ── MODEL SELECTOR ── */
-#model-selector-wrap{position:relative}
-#model-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:700;color:var(--text);transition:all .18s;white-space:nowrap}
-#model-pill:hover{background:var(--hbg);border-color:var(--hbd)}
-#model-pill .model-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
-#model-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;width:320px;background:var(--sb);border:1px solid var(--border);border-radius:var(--r);z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden}
-#model-dropdown.open{display:block;animation:fadeIn .18s ease}
-.model-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
-.model-opt:last-child{border-bottom:none}
-.model-opt:hover{background:var(--hbg)}
-.model-opt.active{background:rgba(79,142,247,.1)}
-.model-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:2px}
-.model-opt-name{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
-.model-opt-desc{font-size:.72rem;color:var(--muted);line-height:1.4}
-.model-opt-meta{display:flex;gap:6px;margin-top:5px}
-.model-meta-tag{font-size:.65rem;padding:1px 7px;border-radius:5px;font-weight:700}
-.speed-fast  {background:rgba(34,197,94,.12);color:var(--green)}
-.speed-medium{background:rgba(245,158,11,.12);color:var(--gold)}
-.speed-slow  {background:rgba(239,68,68,.12);color:var(--red)}
-.params-tag  {background:rgba(79,142,247,.1);color:var(--accent)}
-
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  #sb{width:52px;min-width:52px}
-  .sb-logo-text,.sb-logo-sub,.nav-item span,.sb-footer{display:none}
-  .sb-logo{justify-content:center;padding:12px 8px}
-  .nav-item{justify-content:center;padding:11px}
-  #main{margin-left:52px}
-  .home-grid,.tool-grid,.demo-cards{grid-template-columns:1fr 1fr}
-  .obs-grid{grid-template-columns:repeat(2,1fr)}
-  .stats-row{grid-template-columns:repeat(3,1fr)}
-}
-@media(max-width:600px){
-  .page{padding:14px}
-  .home-grid,.tool-grid,.demo-cards{grid-template-columns:1fr}
-  .stats-row{grid-template-columns:repeat(2,1fr)}
-}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DocMind</title>
+  <style>
+    :root{--bg:#0f111a;--card:#181b24;--border:#2a2d3a;--text:#e4e6ef;--muted:#8892a4;--accent:#4f8ef7;--green:#22c55e;--red:#ef4444;--teal:#06b6d4;--gold:#f59e0b}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;gap:12px}
+    .logo{font-size:1.1rem;font-weight:800;color:var(--accent)}
+    .logo span{color:var(--text)}
+    .model-badge{font-size:.68rem;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:3px 9px;border-radius:20px}
+    #source-pill{margin-left:auto;font-size:.72rem;padding:4px 10px;border-radius:20px;background:rgba(136,146,164,.08);border:1px solid var(--border);color:var(--muted)}
+    #source-pill.loaded{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.25);color:var(--green)}
+    main{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 50px)}
+    .panel{padding:22px 20px;overflow-y:auto}
+    .panel-left{border-right:1px solid var(--border)}
+    .slabel{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+    .tabs{display:flex;gap:3px;background:rgba(255,255,255,.04);border-radius:8px;padding:3px;margin-bottom:16px}
+    .tab-btn{flex:1;background:none;border:none;color:var(--muted);font-size:.8rem;font-weight:600;padding:7px;border-radius:6px;cursor:pointer;transition:all .15s}
+    .tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+    .dropzone{border:2px dashed var(--border);border-radius:9px;padding:30px 16px;text-align:center;cursor:pointer;transition:all .2s}
+    .dropzone:hover,.dropzone.drag-over{border-color:var(--accent);background:rgba(79,142,247,.05)}
+    .dz-icon{font-size:2rem;margin-bottom:8px}
+    .dz-text{font-size:.82rem;color:var(--muted);line-height:1.5}
+    .dz-text strong{color:var(--accent)}
+    input[type=url],textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:.86rem;font-family:inherit;outline:none;transition:border-color .2s}
+    input[type=url]:focus,textarea:focus{border-color:var(--accent)}
+    textarea{resize:vertical;min-height:80px}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:7px;border:none;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:#3a7ae8}
+    .btn-primary:disabled{opacity:.45;cursor:default}
+    .btn-sm{padding:7px 14px;font-size:.78rem}
+    .msg{border-radius:8px;padding:10px 13px;font-size:.8rem;margin-top:10px;line-height:1.55}
+    .msg-ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green)}
+    .msg-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+    .msg-info{color:var(--muted);font-size:.78rem;margin-top:8px}
+    #source-card{display:none;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:9px;padding:12px 14px;margin-top:14px;font-size:.8rem}
+    #source-card strong{color:var(--text);display:block;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #source-card span{color:var(--teal);font-size:.73rem}
+    .q-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+    .q-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+    #q-err{font-size:.78rem;color:var(--red)}
+    #trace-wrap{display:none;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:9px;padding:10px 12px;max-height:240px;overflow-y:auto;margin-bottom:14px}
+    .t-step{display:flex;align-items:flex-start;gap:8px;font-size:.74rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .t-step:last-child{border-bottom:none}
+    .t-badge{font-size:.6rem;font-weight:800;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-top:1px}
+    .b-planner{background:rgba(79,142,247,.15);color:var(--accent)}
+    .b-retriever{background:rgba(6,182,212,.15);color:var(--teal)}
+    .b-grader{background:rgba(245,158,11,.15);color:var(--gold)}
+    .b-generator{background:rgba(34,197,94,.15);color:var(--green)}
+    .b-critic{background:rgba(239,68,68,.1);color:var(--red)}
+    .t-msg{flex:1;color:var(--muted);line-height:1.45}
+    .t-lat{color:rgba(136,146,164,.45);font-size:.65rem;white-space:nowrap}
+    #answer-wrap{display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+    .ans-label{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px}
+    #answer-text{font-size:.88rem;line-height:1.72;white-space:pre-wrap;word-break:break-word}
+    #verdict{margin-top:12px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:5px;display:inline-block}
+    .v-ok{background:rgba(34,197,94,.12);color:var(--green)}
+    .v-warn{background:rgba(245,158,11,.12);color:var(--gold)}
+    @media(max-width:768px){main{grid-template-columns:1fr}.panel-left{border-right:none;border-bottom:1px solid var(--border)}}
+  </style>
 </head>
 <body>
-
-<!-- ── SIDEBAR ── -->
-<nav id="sb">
-  <div class="sb-logo">
-    <div class="sb-logo-icon">🧠</div>
-    <div><div class="sb-logo-text">DocMind</div><div class="sb-logo-sub">Agentic Research</div></div>
-  </div>
-  <div class="sb-nav">
-    <div class="nav-item active" onclick="nav('home')"     id="nav-home">    <i class="fas fa-home"></i>       <span>Overview</span></div>
-    <div class="nav-item"        onclick="nav('ingest')"   id="nav-ingest">  <i class="fas fa-database"></i>   <span>Load Knowledge</span></div>
-    <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('research')" id="nav-research"><i class="fas fa-search"></i>     <span>Research Query</span></div>
-    <div class="nav-item"        onclick="nav('review')"   id="nav-review">  <i class="fas fa-eye"></i>        <span>Human Review</span><span id="review-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;margin-left:auto">0</span></div>
-    <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('obs')"      id="nav-obs">     <i class="fas fa-chart-line"></i> <span>Observability</span></div>
-    <div class="nav-item"        onclick="nav('tools')"    id="nav-tools">   <i class="fas fa-tools"></i>      <span>Tool Playground</span></div>
-  </div>
-  <div class="sb-footer">
-    <div><span class="status-dot"></span><span id="sb-status">Checking…</span></div>
-  </div>
-</nav>
-
-<!-- ── MAIN ── -->
-<div id="main">
-<div id="topbar">
-  <div id="topbar-title"><i class="fas fa-wand-magic-sparkles"></i><span id="topbar-label">Overview</span></div>
-  <div class="topbar-right">
-    <!-- Model selector -->
-    <div id="model-selector-wrap">
-      <div id="model-pill" onclick="toggleModelDropdown()">
-        <span class="model-dot"></span>
-        <span id="model-pill-label">Loading…</span>
-        <i class="fas fa-chevron-down" style="font-size:.6rem;color:var(--muted)"></i>
-      </div>
-      <div id="model-dropdown">
-        <div style="padding:10px 16px 8px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)">Select Model — All Free Tier</div>
-        <div id="model-opts-list"></div>
-      </div>
+<header>
+  <div class="logo">Doc<span>Mind</span></div>
+  <span class="model-badge">Qwen 2.5 7B</span>
+  <span id="source-pill">No source loaded</span>
+</header>
+<main>
+  <!-- LEFT: LOAD SOURCE -->
+  <div class="panel panel-left">
+    <div class="slabel">Load Knowledge Source</div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'pdf')">&#128196; Upload PDF</button>
+      <button class="tab-btn" onclick="switchTab(this,'url')">&#127760; Paste URL</button>
     </div>
-
-    <div class="icon-btn" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon" id="theme-icon"></i></div>
-    <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="icon-btn" title="GitHub"><i class="fab fa-github"></i></a>
-  </div>
-</div>
-
-<!-- ═══════ PAGE: HOME ═══════ -->
-<div class="page active" id="page-home">
-  <div style="text-align:center;padding:28px 0 20px">
-    <h1 style="font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;margin-bottom:8px">🧠 <span class="grad">DocMind</span></h1>
-    <p style="color:var(--muted);font-size:.92rem;max-width:520px;margin:0 auto;line-height:1.65">Five LangGraph agents collaborate to retrieve, grade, generate, and critique answers from any URL, web search, or uploaded PDF. No hallucination. Full trace. Human-in-the-loop.</p>
-  </div>
-  <div class="stats-row" id="home-stats">
-    <div class="stat-item"><div class="stat-v grad" id="st-docs">0</div><div class="stat-l">Sources Indexed</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-chunks">0</div><div class="stat-l">Chunks Stored</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-queries">0</div><div class="stat-l">Queries Run</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-complete">0</div><div class="stat-l">Completed</div></div>
-    <div class="stat-item"><div class="stat-v grad" id="st-review">0</div><div class="stat-l">Pending Review</div></div>
-  </div>
-  <div class="home-grid">
-    <div class="home-card" onclick="nav('ingest')"><div class="home-card-icon">🌐</div><div class="home-card-name">Load Knowledge</div><div class="home-card-desc">Paste a URL, search the web, or upload a PDF (max 10 MB). Previous source is cleared automatically.</div></div>
-    <div class="home-card" onclick="nav('research')"><div class="home-card-icon">🔍</div><div class="home-card-name">Research Query</div><div class="home-card-desc">Ask any question. Watch five LangGraph agents plan, retrieve, grade, generate, and critique in real time.</div></div>
-    <div class="home-card" onclick="nav('review')"><div class="home-card-icon">👁️</div><div class="home-card-name">Human Review</div><div class="home-card-desc">Answers flagged by the Critic agent appear here for your approval before delivery.</div></div>
-    <div class="home-card" onclick="nav('obs')"><div class="home-card-icon">📊</div><div class="home-card-name">Observability</div><div class="home-card-desc">Per-agent latency, call counts, and live trace — LangSmith-style without the paid plan.</div></div>
-    <div class="home-card" onclick="nav('tools')"><div class="home-card-icon">🔧</div><div class="home-card-name">Tool Playground</div><div class="home-card-desc">Test web search, calculator, and sandboxed code execution independently.</div></div>
-    <div class="home-card" style="cursor:default"><div class="home-card-icon">🤗</div><div class="home-card-name">Free HF Models</div><div class="home-card-desc">Mistral-7B · Zephyr-7B · bge-small. Token: <span id="hf-token-status" style="color:var(--red)">checking…</span></div></div>
-  </div>
-</div>
-
-<!-- ═══════ PAGE: INGEST ═══════ -->
-<div class="page" id="page-ingest">
-  <div class="s-tag s-tag-blue">One source active at a time · Previous cleared on each load · PDF max 10 MB</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-database"></i> Load Knowledge Base</div>
-
-  <!-- Active source indicator -->
-  <div id="source-bar">
-    <i class="fas fa-circle-check"></i>
-    <span id="source-bar-text">No source loaded</span>
-    <span id="source-bar-chunks"></span>
-    <button class="btn btn-ghost btn-sm" onclick="nav('research')"><i class="fas fa-search"></i> Start Researching</button>
-  </div>
-
-  <div class="card">
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchIngTab('url',this)"><i class="fas fa-link"></i> Paste URL</button>
-      <button class="tab-btn"        onclick="switchIngTab('search',this)"><i class="fas fa-search"></i> Web Search</button>
-      <button class="tab-btn"        onclick="switchIngTab('pdf',this)"><i class="fas fa-file-pdf"></i> Upload PDF</button>
+    <div id="tab-pdf">
+      <div class="dropzone" id="dz"
+           onclick="document.getElementById('fi').click()"
+           ondragover="dg(event,true)" ondragleave="dg(event,false)" ondrop="dp(event)">
+        <div class="dz-icon">&#128194;</div>
+        <div class="dz-text"><strong>Click to browse</strong> or drag &amp; drop<br>PDF &middot; max 10 MB</div>
+      </div>
+      <input type="file" id="fi" accept=".pdf" style="display:none" onchange="fc(event)"/>
+      <div id="pdf-msg"></div>
     </div>
-
-    <!-- URL tab -->
-    <div class="tab-panel active" id="ing-url">
-      <div class="field">
-        <label>Public URL</label>
-        <input type="text" id="url-input" placeholder="https://en.wikipedia.org/wiki/Artificial_intelligence" oninput="clearErr('ing-err')">
-      </div>
-      <p style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Any publicly accessible web page. JavaScript-rendered pages may not work — prefer static HTML pages, Wikipedia articles, government sites, and documentation.</p>
-      <button class="btn btn-primary" id="url-btn" onclick="runIngestURL()"><i class="fas fa-cloud-download-alt"></i> Fetch &amp; Index</button>
+    <div id="tab-url" style="display:none">
+      <input type="url" id="url-inp" placeholder="https://en.wikipedia.org/wiki/..."
+             style="margin-bottom:10px" onkeydown="if(event.key==='Enter')fetchURL()"/>
+      <button class="btn btn-primary btn-sm" id="url-btn" onclick="fetchURL()">Fetch &amp; Index</button>
+      <div id="url-msg"></div>
     </div>
-
-    <!-- Search tab -->
-    <div class="tab-panel" id="ing-search">
-      <div class="field">
-        <label>Search Query</label>
-        <input type="text" id="search-query" placeholder="e.g. diabetes prevention guidelines WHO 2024" oninput="clearErr('ing-err')">
-      </div>
-      <div class="field">
-        <label>Restrict to Site <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — e.g. who.int or arxiv.org)</span></label>
-        <input type="text" id="search-site" placeholder="who.int">
-      </div>
-      <p style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Searches DuckDuckGo (no API key needed), fetches the top matching page, and indexes it automatically.</p>
-      <button class="btn btn-primary" id="search-btn" onclick="runSearchIngest()"><i class="fas fa-search"></i> Search &amp; Index Top Result</button>
-    </div>
-
-    <!-- PDF tab -->
-    <div class="tab-panel" id="ing-pdf">
-      <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="dropOver(event)" ondragleave="dropLeave(event)" ondrop="dropFile(event)">
-        <i class="fas fa-file-pdf"></i>
-        <p><strong style="color:var(--text)">Click to upload</strong> or drag a PDF here</p>
-        <p style="margin-top:4px;font-size:.74rem;color:var(--red)">⚠️ Max 10 MB · Replaces current knowledge base · Free HF disk is limited</p>
-      </div>
-      <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="uploadFile(this.files[0])">
-      <div id="upload-progress" style="display:none;margin-top:12px">
-        <div class="loading-row"><div class="spinner"></div> Chunking, embedding, and indexing…</div>
-      </div>
-    </div>
-
-    <div id="ing-err"></div>
-    <div id="ing-ok"></div>
-  </div>
-
-  <!-- Indexed source list -->
-  <div class="card" style="margin-top:16px">
-    <div class="card-title"><i class="fas fa-layer-group"></i> Current Knowledge Base</div>
-    <div id="kb-status" style="color:var(--muted);font-size:.83rem">No source loaded yet. Use one of the three methods above.</div>
-  </div>
-</div>
-
-<!-- ═══════ PAGE: RESEARCH ═══════ -->
-<div class="page" id="page-research">
-  <div class="s-tag s-tag-blue">LangGraph · 5 Agents · Corrective RAG · Human-in-the-Loop</div>
-  <div class="card-title" style="margin-bottom:14px"><i class="fas fa-search"></i> Research Query</div>
-
-  <!-- Industry demo cards -->
-  <div class="demo-section">
-    <div class="demo-section-title"><i class="fas fa-bolt" style="color:var(--gold)"></i> Quick Start — Industry Examples</div>
-    <div class="demo-cards" id="demo-cards-grid">
-
-      <div class="demo-card" onclick="loadDemo(this)"
-           data-url="https://consumer.ftc.gov/articles/understanding-your-credit-billing-rights"
-           data-q="What are the key consumer rights when disputing a charge on a credit card statement?">
-        <div class="demo-card-icon">🛒</div>
-        <div class="demo-card-industry" style="color:var(--gold)">Consumer Rights</div>
-        <div class="demo-card-title">FTC — Credit Billing Rights</div>
-        <div class="demo-card-q">"What are the key consumer rights when disputing a charge on a credit card statement?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(245,158,11,.12);color:var(--gold)">URL</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">consumer.ftc.gov</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--gold);flex-shrink:0"></i><span>consumer.ftc.gov/articles/understanding-your-credit-billing-rights</span></div>
-      </div>
-
-      <div class="demo-card" onclick="loadDemo(this)" data-url="https://www.who.int/news-room/fact-sheets/detail/diabetes" data-q="What are WHO's recommended prevention and management strategies for Type 2 diabetes?">
-        <div class="demo-card-icon">🏥</div>
-        <div class="demo-card-industry" style="color:var(--teal)">Healthcare</div>
-        <div class="demo-card-title">WHO Diabetes Guidelines</div>
-        <div class="demo-card-q">"What are WHO's recommended prevention and management strategies for Type 2 diabetes?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(6,182,212,.1);color:var(--teal)">URL</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">who.int</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--teal);flex-shrink:0"></i><span>who.int/news-room/fact-sheets/detail/diabetes</span></div>
-      </div>
-
-      <div class="demo-card" onclick="loadDemo(this)" data-search="LangGraph multi-agent RAG paper" data-site="arxiv.org" data-q="What methodology did the authors use and what were the main findings of this research?">
-        <div class="demo-card-icon">🎓</div>
-        <div class="demo-card-industry" style="color:var(--purple)">Research</div>
-        <div class="demo-card-title">ArXiv — LangGraph Paper</div>
-        <div class="demo-card-q">"What methodology did the authors use and what were the main findings?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(167,139,250,.12);color:var(--purple)">Search</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">arxiv.org</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--purple);flex-shrink:0"></i><span>Search arxiv.org — "LangGraph multi-agent RAG paper"</span></div>
-      </div>
-
-      <div class="demo-card" onclick="loadDemo(this)" data-search="FDIC consumer rights bank account protection" data-site="fdic.gov" data-q="What are the key consumer protections and deposit insurance limits for bank account holders?">
-        <div class="demo-card-icon">🏦</div>
-        <div class="demo-card-industry" style="color:var(--green)">Banking</div>
-        <div class="demo-card-title">FDIC Consumer Rights</div>
-        <div class="demo-card-q">"What are the key consumer protections and deposit insurance limits for bank account holders?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(34,197,94,.1);color:var(--green)">Search</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">fdic.gov</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--green);flex-shrink:0"></i><span>Search fdic.gov — "FDIC consumer rights bank account protection"</span></div>
-      </div>
-
-      <div class="demo-card" onclick="loadDemo(this)" data-search="insurance policy exclusions common clauses explained" data-site="" data-q="What are the most common exclusion clauses in insurance policies and how do they affect claims?">
-        <div class="demo-card-icon">⚖️</div>
-        <div class="demo-card-industry" style="color:var(--red)">Insurance</div>
-        <div class="demo-card-title">Policy Exclusions Guide</div>
-        <div class="demo-card-q">"What are the most common exclusion clauses and how do they affect claims?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(239,68,68,.1);color:var(--red)">Search</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">Web</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-search" style="color:var(--red);flex-shrink:0"></i><span>Web search — "insurance policy exclusions common clauses explained"</span></div>
-      </div>
-
-      <div class="demo-card" onclick="loadDemo(this)" data-url="https://en.wikipedia.org/wiki/Artificial_intelligence" data-q="What are the main subfields of artificial intelligence and what problems does each one solve?">
-        <div class="demo-card-icon">🤖</div>
-        <div class="demo-card-industry" style="color:var(--accent)">Technology</div>
-        <div class="demo-card-title">AI Overview — Wikipedia</div>
-        <div class="demo-card-q">"What are the main subfields of AI and what problems does each one solve?"</div>
-        <div class="demo-card-meta">
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.12);color:var(--accent)">URL</span>
-          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">wikipedia.org</span>
-        </div>
-        <div class="demo-card-src"><i class="fas fa-link" style="color:var(--accent);flex-shrink:0"></i><span>en.wikipedia.org/wiki/Artificial_intelligence</span></div>
-      </div>
-
+    <div id="source-card">
+      <strong id="source-name"></strong>
+      <span id="source-chunks"></span>
     </div>
   </div>
-
-  <!-- Active source indicator -->
-  <div id="res-source-bar" style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:.8rem;color:var(--muted);display:none">
-    <i class="fas fa-database" style="color:var(--green)"></i> Active source: <strong id="res-source-label" style="color:var(--text)"></strong>
-    <span id="res-chunk-count" style="color:var(--teal);margin-left:8px"></span>
-  </div>
-
-  <div class="card">
-    <div class="field">
-      <label>Research Question</label>
-      <textarea id="q-input" placeholder="Ask anything about the loaded source…" rows="3" onkeydown="researchKeydown(event)"></textarea>
+  <!-- RIGHT: RESEARCH -->
+  <div class="panel">
+    <div class="slabel">Research Question</div>
+    <div class="q-wrap">
+      <textarea id="q-inp" rows="3"
+        placeholder="Ask anything about the loaded source... (Enter to submit)"
+        onkeydown="qk(event)"></textarea>
+      <div class="q-row">
+        <button class="btn btn-primary" id="ask-btn" onclick="ask()">&#9889; Ask</button>
+        <span id="q-err"></span>
+      </div>
     </div>
-    <button class="btn btn-primary" id="q-btn" onclick="runResearch()"><i class="fas fa-bolt"></i> Run Research</button>
-    <div id="q-err"></div>
-  </div>
-
-  <!-- Agent Graph -->
-  <div class="card" id="graph-card" style="margin-top:16px;display:none">
-    <div class="card-title"><i class="fas fa-project-diagram"></i> LangGraph Agent State Machine</div>
-    <div id="agent-graph-wrap">
-      <svg id="agent-graph" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(136,146,164,.4)"/>
-          </marker>
-        </defs>
-        <line class="ag-arrow" x1="95"  y1="70" x2="160" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="245" y1="70" x2="310" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="395" y1="70" x2="460" y2="70" marker-end="url(#arrow)"/>
-        <line class="ag-arrow" x1="545" y1="70" x2="610" y2="70" marker-end="url(#arrow)"/>
-        <path class="ag-arrow" d="M 350 105 Q 350 150 280 150 Q 210 150 205 105" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
-        <g class="ag-node ag-node-idle" id="gn-planner">
-          <rect x="5" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="50" y="63">PLANNER</text>
-          <text class="ag-sub" x="50" y="80">Llama-3.1 8B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-retriever">
-          <rect x="160" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="205" y="63">RETRIEVER</text>
-          <text class="ag-sub" x="205" y="80">FAISS+BM25</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-grader">
-          <rect x="310" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="355" y="63">GRADER</text>
-          <text class="ag-sub" x="355" y="80">Zephyr-7B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-rewriter" style="opacity:.5">
-          <rect x="265" y="130" width="80" height="40" rx="8"/>
-          <text class="ag-label ag-pulse" x="305" y="150">REWRITER</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-generator">
-          <rect x="460" y="44" width="90" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="505" y="63">GENERATOR</text>
-          <text class="ag-sub" x="505" y="80">Llama-3.1 8B</text>
-        </g>
-        <g class="ag-node ag-node-idle" id="gn-critic">
-          <rect x="610" y="44" width="85" height="52" rx="10"/>
-          <text class="ag-label ag-pulse" x="652" y="63">CRITIC</text>
-          <text class="ag-sub" x="652" y="80">Zephyr-7B</text>
-        </g>
-      </svg>
-    </div>
-    <div style="margin-top:4px">
-      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Agent Trace</div>
-      <div id="trace-log"><p style="color:var(--muted);font-size:.8rem">Waiting for agent execution…</p></div>
+    <div id="trace-wrap"><div id="trace-log"></div></div>
+    <div id="answer-wrap">
+      <div class="ans-label">Answer</div>
+      <div id="answer-text"></div>
+      <div id="verdict"></div>
     </div>
   </div>
-
-  <div class="card" id="answer-card">
-    <div class="card-title"><i class="fas fa-check-circle" style="color:var(--green)"></i> Research Answer</div>
-    <div class="output-box lit" id="answer-output"></div>
-    <div class="source-chips" id="source-chips"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-ghost btn-sm" onclick="copyText('answer-output',this)"><i class="fas fa-copy"></i> Copy</button>
-    </div>
-  </div>
-
-  <div class="card" id="flagged-card" style="display:none;border-color:rgba(245,158,11,.3)">
-    <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--gold)"></i> Flagged for Human Review</div>
-    <p style="color:var(--muted);font-size:.85rem">The Critic flagged this answer. Go to <strong>Human Review</strong> to approve or reject.</p>
-    <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="nav('review')"><i class="fas fa-eye"></i> Go to Review Queue</button>
-  </div>
-</div>
-
-<!-- ═══════ PAGE: REVIEW ═══════ -->
-<div class="page" id="page-review">
-  <div class="s-tag s-tag-gold">Human-in-the-Loop · Critic Agent Escalations</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-eye"></i> Human Review Queue</div>
-  <div id="review-list"><p style="color:var(--muted);font-size:.84rem">No answers pending review.</p></div>
-</div>
-
-<!-- ═══════ PAGE: OBSERVABILITY ═══════ -->
-<div class="page" id="page-obs">
-  <div class="s-tag s-tag-teal">LangSmith-Style Tracing · Per-Agent Metrics</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-chart-line"></i> Observability Dashboard</div>
-  <div class="obs-grid">
-    <div class="obs-card"><div class="obs-val grad" id="obs-total">0</div><div class="obs-lbl">Total Agent Calls</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-queries">0</div><div class="obs-lbl">Total Queries</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-avg-plan">—</div><div class="obs-lbl">Avg Planner Latency</div></div>
-    <div class="obs-card"><div class="obs-val grad" id="obs-avg-gen">—</div><div class="obs-lbl">Avg Generator Latency</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title"><i class="fas fa-tachometer-alt"></i> Agent Call Distribution</div>
-    <div class="chart-wrap"><canvas id="obs-chart"></canvas></div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="card-title"><i class="fas fa-stopwatch"></i> Avg Latency per Agent (ms)</div>
-    <div class="chart-wrap"><canvas id="lat-chart"></canvas></div>
-  </div>
-</div>
-
-<!-- ═══════ PAGE: TOOLS ═══════ -->
-<div class="page" id="page-tools">
-  <div class="s-tag s-tag-blue">Function Calling · Tool Use</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-tools"></i> Tool Playground</div>
-  <div class="tool-grid">
-    <div class="tool-card">
-      <div class="tool-icon">🌐</div>
-      <div class="tool-name">Web Search</div>
-      <div class="tool-desc">DuckDuckGo free search — no API key. Used by the Planner agent when web context is needed.</div>
-      <div class="field"><label>Search Query</label><textarea id="ws-inp" rows="2" placeholder="e.g. LangGraph tutorial 2025"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="ws-btn" onclick="runTool('web_search','ws-inp','ws-out',this)"><i class="fas fa-search"></i> Search</button>
-      <div id="ws-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
-    </div>
-    <div class="tool-card">
-      <div class="tool-icon">🧮</div>
-      <div class="tool-name">Calculator</div>
-      <div class="tool-desc">Safe AST-based math evaluator supporting +, −, ×, ÷, ^ and all Python math functions.</div>
-      <div class="field"><label>Expression</label><textarea id="calc-inp" rows="2" placeholder="e.g. sqrt(144) + log(100)"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="calc-btn" onclick="runTool('calculator','calc-inp','calc-out',this)"><i class="fas fa-equals"></i> Calculate</button>
-      <div id="calc-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
-    </div>
-    <div class="tool-card">
-      <div class="tool-icon">💻</div>
-      <div class="tool-name">Code Runner</div>
-      <div class="tool-desc">Sandboxed Python execution with safe builtins only. No file I/O or network access.</div>
-      <div class="field"><label>Python Code</label><textarea id="code-inp" rows="4" placeholder="x = [i**2 for i in range(10)]&#10;print(sum(x))"></textarea></div>
-      <button class="btn btn-primary btn-sm" id="code-btn" onclick="runTool('code','code-inp','code-out',this)"><i class="fas fa-play"></i> Run</button>
-      <div id="code-out" class="output-box" style="margin-top:10px;min-height:60px;display:none;font-family:var(--mono)"></div>
-    </div>
-  </div>
-</div>
-
-</div><!-- /#main -->
-
+</main>
 <script>
-// ── GLOBALS ──────────────────────────────────────────────────────────────
-let currentQid  = null;
-let pollTimer   = null;
-let seenSteps   = 0;
-let obsChart    = null;
-let latChart    = null;
+let pollTimer=null,seen=0;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-const PAGE_LABELS = {
-  home:'Overview', ingest:'Load Knowledge', research:'Research Query',
-  review:'Human Review', obs:'Observability', tools:'Tool Playground'
-};
-const NODE_AGENT_MAP = {
-  planner:'gn-planner', retriever:'gn-retriever', grader:'gn-grader',
-  rewriter:'gn-rewriter', generator:'gn-generator', critic:'gn-critic',
-  human_review:'gn-critic'
-};
-
-// ── NAVIGATION ───────────────────────────────────────────────────────────
-function nav(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'  + id).classList.add('active');
-  document.getElementById('nav-'   + id).classList.add('active');
-  document.getElementById('topbar-label').textContent = PAGE_LABELS[id];
-  if (id === 'obs')    loadObs();
-  if (id === 'review') loadReview();
-  if (id === 'research') refreshSourceBar();
-}
-
-// ── THEME ────────────────────────────────────────────────────────────────
-function toggleTheme() {
-  const d = document.documentElement;
-  const light = d.getAttribute('data-theme') === 'dark';
-  d.setAttribute('data-theme', light ? 'light' : 'dark');
-  document.getElementById('theme-icon').className = light ? 'fas fa-moon' : 'fas fa-sun';
-  localStorage.setItem('dm-theme', light ? 'light' : 'dark');
-}
-(function(){ const t = localStorage.getItem('dm-theme')||'dark'; document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-icon').className = t==='dark'?'fas fa-moon':'fas fa-sun'; })();
-
-// ── HEALTH + STATS ───────────────────────────────────────────────────────
-async function checkHealth() {
-  try {
-    const r = await fetch('/health'); const d = await r.json();
-    document.getElementById('sb-status').textContent = d.token_set ? 'HF Token Active' : 'Token Missing';
-    document.getElementById('hf-token-status').textContent = d.token_set ? 'set ✅' : 'not set ❌';
-    document.getElementById('hf-token-status').style.color = d.token_set ? 'var(--green)' : 'var(--red)';
-  } catch(e) {}
-}
-async function refreshStats() {
-  try {
-    const r = await fetch('/api/stats'); const d = await r.json();
-    document.getElementById('st-docs').textContent     = d.docs_indexed;
-    document.getElementById('st-chunks').textContent   = d.chunks_stored;
-    document.getElementById('st-queries').textContent  = d.queries_run;
-    document.getElementById('st-complete').textContent = d.queries_complete;
-    document.getElementById('st-review').textContent   = d.pending_review;
-    const badge = document.getElementById('review-badge');
-    badge.style.display = d.pending_review > 0 ? 'inline' : 'none';
-    badge.textContent   = d.pending_review;
-    updateKBStatus(d);
-  } catch(e) {}
-}
-function updateKBStatus(d) {
-  const bar  = document.getElementById('source-bar');
-  const text = document.getElementById('source-bar-text');
-  const chk  = document.getElementById('source-bar-chunks');
-  if (d.chunks_stored > 0 && d.source) {
-    bar.style.display  = 'flex';
-    text.textContent   = d.source;
-    chk.textContent    = `${d.chunks_stored} chunks`;
-    document.getElementById('kb-status').innerHTML =
-      `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-        <i class="fas fa-circle-check" style="color:var(--green)"></i>
-        <div><div style="font-weight:700;font-size:.85rem;color:var(--text)">${esc(d.source)}</div>
-        <div style="font-size:.75rem;color:var(--muted)">${d.chunks_stored} chunks indexed · Ready to query</div></div>
-      </div>`;
-  } else {
-    bar.style.display = 'none';
-  }
-}
-function refreshSourceBar() {
-  fetch('/api/stats').then(r=>r.json()).then(d => {
-    const bar = document.getElementById('res-source-bar');
-    if (d.chunks_stored > 0 && d.source) {
-      bar.style.display = 'flex';
-      document.getElementById('res-source-label').textContent = d.source;
-      document.getElementById('res-chunk-count').textContent  = `${d.chunks_stored} chunks`;
-    } else {
-      bar.style.display = 'none';
-    }
-  }).catch(()=>{});
-}
-checkHealth();
-refreshStats();
-setInterval(refreshStats, 8000);
-
-// ── INGESTION TABS ───────────────────────────────────────────────────────
-function switchIngTab(id, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+function switchTab(btn,name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('ing-' + id).classList.add('active');
-  clearErr('ing-err');
-  document.getElementById('ing-ok').innerHTML = '';
+  document.getElementById('tab-pdf').style.display=name==='pdf'?'':'none';
+  document.getElementById('tab-url').style.display=name==='url'?'':'none';
 }
+function dg(e,over){e.preventDefault();document.getElementById('dz').classList[over?'add':'remove']('drag-over');}
+function dp(e){e.preventDefault();document.getElementById('dz').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)up(f);}
+function fc(e){if(e.target.files[0])up(e.target.files[0]);}
 
-function showIngOk(msg) {
-  document.getElementById('ing-ok').innerHTML = `<div class="ok-box">✅ ${msg}</div>`;
-}
-
-// ── URL INGEST ───────────────────────────────────────────────────────────
-async function runIngestURL() {
-  const url = document.getElementById('url-input').value.trim();
-  if (!url) return;
-  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
-  const btn = document.getElementById('url-btn');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Fetching…';
-  try {
-    const r = await fetch('/api/ingest_url', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url})});
-    const d = await r.json();
-    if (d.error) { showErr('ing-err', d.error); return; }
-    showIngOk(`Fetched and indexed <strong>${esc(d.url)}</strong> — ${d.chunks} chunks stored.`);
-    refreshStats();
-  } catch(e) { showErr('ing-err', e.message); }
-  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-cloud-download-alt"></i> Fetch & Index'; }
-}
-
-// ── SEARCH INGEST ────────────────────────────────────────────────────────
-async function runSearchIngest() {
-  const query = document.getElementById('search-query').value.trim();
-  const site  = document.getElementById('search-site').value.trim();
-  if (!query) return;
-  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
-  const btn = document.getElementById('search-btn');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Searching…';
-  try {
-    const r = await fetch('/api/search_ingest', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, site})});
-    const d = await r.json();
-    if (d.error) { showErr('ing-err', d.error); return; }
-    showIngOk(`Found <strong>${esc(d.title)}</strong> — indexed ${d.chunks} chunks from <code>${esc(d.url)}</code>`);
-    refreshStats();
-  } catch(e) { showErr('ing-err', e.message); }
-  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-search"></i> Search & Index Top Result'; }
-}
-
-// ── PDF UPLOAD ───────────────────────────────────────────────────────────
-function dropOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-function dropLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
-function dropFile(e)  { e.preventDefault(); dropLeave(e); if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); }
-
-async function uploadFile(file) {
-  if (!file || !file.name.endsWith('.pdf')) { showErr('ing-err','Only PDF files are supported.'); return; }
-  if (file.size > 10*1024*1024) { showErr('ing-err',`File is ${(file.size/1024/1024).toFixed(1)} MB — maximum is 10 MB.`); return; }
-  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
-  document.getElementById('upload-progress').style.display = 'block';
-  const fd = new FormData(); fd.append('file', file);
-  try {
-    const r = await fetch('/api/upload', {method:'POST', body:fd});
-    const d = await r.json();
-    document.getElementById('upload-progress').style.display = 'none';
-    if (d.error) { showErr('ing-err', d.error); return; }
-    showIngOk(`Uploaded <strong>${esc(d.filename)}</strong> — ${d.chunks} chunks indexed.`);
-    refreshStats();
-  } catch(e) {
-    document.getElementById('upload-progress').style.display = 'none';
-    showErr('ing-err', e.message);
-  }
-}
-
-// ── DEMO CARDS ───────────────────────────────────────────────────────────
-async function loadDemo(card) {
-  const url    = card.dataset.url    || '';
-  const search = card.dataset.search || '';
-  const site   = card.dataset.site   || '';
-  const q      = card.dataset.q      || '';
-
-  // Save original icon so we can restore it
-  const iconEl   = card.querySelector('.demo-card-icon');
-  const origIcon = iconEl ? iconEl.textContent : '';
-
-  // Lock all cards; show loading state on the clicked one
-  document.querySelectorAll('.demo-card').forEach(c => {
-    c.style.opacity       = '0.35';
-    c.style.pointerEvents = 'none';
-  });
-  card.style.opacity       = '1';
-  card.style.pointerEvents = 'auto';
-  card.classList.add('demo-loading');
-  if (iconEl) iconEl.textContent = '⏳';
-
-  // Pre-fill question
-  document.getElementById('q-input').value = q;
-
-  // Navigate to ingest, load source
-  nav('ingest');
-  clearErr('ing-err');
-  document.getElementById('ing-ok').innerHTML = '';
-
-  try {
-    if (url) {
-      switchIngTab('url', document.querySelectorAll('.tab-btn')[0]);
-      document.getElementById('url-input').value = url;
-      await runIngestURL();
-    } else if (search) {
-      switchIngTab('search', document.querySelectorAll('.tab-btn')[1]);
-      document.getElementById('search-query').value = search;
-      document.getElementById('search-site').value  = site;
-      await runSearchIngest();
-    }
-  } finally {
-    // Restore card state
-    document.querySelectorAll('.demo-card').forEach(c => {
-      c.style.opacity = '1'; c.style.borderColor = ''; c.style.pointerEvents = '';
-    });
-    card.classList.remove('demo-loading');
-    if (iconEl) iconEl.textContent = origIcon;
-  }
-
-  // Go to research and auto-fire the question — full one-click demo
-  nav('research');
-  runResearch();
-}
-
-// ── RESEARCH ─────────────────────────────────────────────────────────────
-function researchKeydown(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();runResearch();} }
-
-async function runResearch() {
-  const q = document.getElementById('q-input').value.trim();
-  if (!q) return;
-  clearErr('q-err');
-  resetGraph();
-  document.getElementById('graph-card').style.display   = 'block';
-  document.getElementById('answer-card').style.display  = 'none';
-  document.getElementById('flagged-card').style.display = 'none';
-  document.getElementById('trace-log').innerHTML = '<p style="color:var(--muted);font-size:.8rem">Starting agents…</p>';
-  document.getElementById('q-btn').disabled = true;
-  seenSteps = 0;
-
-  try {
-    const r = await fetch('/api/research', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question:q})});
-    const d = await r.json();
-    if (d.error) { showErr('q-err', d.error); document.getElementById('q-btn').disabled=false; return; }
-    currentQid = d.query_id;
-    pollTimer  = setInterval(pollTrace, 2000);
-  } catch(e) { showErr('q-err', e.message); document.getElementById('q-btn').disabled=false; }
-}
-
-async function pollTrace() {
-  if (!currentQid) return;
-  try {
-    const r = await fetch('/api/trace/'+currentQid);
-    const d = await r.json();
-    renderTraceSteps(d.trace||[]);
-    if (['complete','pending_review','error'].includes(d.status)) {
-      clearInterval(pollTimer);
-      document.getElementById('q-btn').disabled = false;
-      if (d.status==='complete'&&d.result) renderAnswer(d.result);
-      else if (d.status==='pending_review') { document.getElementById('flagged-card').style.display='block'; loadReview(); }
-      else if (d.status==='error'&&d.result) showErr('q-err', d.result.error||'Unknown error.');
-      refreshStats();
-    }
-  } catch(e) {}
-}
-
-function renderTraceSteps(steps) {
-  const log = document.getElementById('trace-log');
-  if (!steps.length) return;
-  if (seenSteps===0) log.innerHTML='';
-  for (let i=seenSteps; i<steps.length; i++) {
-    const s=steps[i];
-    const lat = s.latency_ms>0 ? `<span class="trace-lat">${s.latency_ms}ms</span>` : '';
-    log.innerHTML += `<div class="trace-step"><span class="trace-badge badge-${s.agent}">${s.agent}</span><span class="trace-msg">${esc(s.message)}</span>${lat}<span class="trace-ts">${s.ts}</span></div>`;
-    setNodeStatus(s.agent, s.status==='running'?'running':'complete');
-  }
-  seenSteps = steps.length;
-  log.scrollTop = log.scrollHeight;
-}
-
-function renderAnswer(result) {
-  document.getElementById('answer-card').style.display = 'block';
-  document.getElementById('answer-output').textContent = result.generation||'No answer generated.';
-  const chips = document.getElementById('source-chips');
-  chips.innerHTML = '';
-  if (result.graded_docs) {
-    [...new Set(result.graded_docs.map(d=>`${d.source} p.${d.page}`))].forEach(s => {
-      chips.innerHTML += `<span class="source-chip">📄 ${s}</span>`;
-    });
-  }
-}
-
-function resetGraph() {
-  ['planner','retriever','grader','rewriter','generator','critic'].forEach(a=>setNodeStatus(a,'idle'));
-  document.getElementById('gn-rewriter').style.opacity='.5';
-}
-function setNodeStatus(agent,status) {
-  const id=NODE_AGENT_MAP[agent]; if(!id)return;
-  const el=document.getElementById(id); if(!el)return;
-  el.className=`ag-node ag-node-${status}`;
-  if(agent==='rewriter') el.style.opacity=status==='idle'?'.5':'1';
-}
-
-// ── HUMAN REVIEW ─────────────────────────────────────────────────────────
-async function loadReview() {
-  try {
-    const r=await fetch('/api/review'); const d=await r.json();
-    const list=document.getElementById('review-list');
-    if(!d.pending||!d.pending.length){list.innerHTML='<p style="color:var(--muted);font-size:.84rem">No answers pending review.</p>';return;}
-    list.innerHTML=d.pending.map(item=>`
-      <div class="review-card" id="rc-${item.query_id}">
-        <div class="review-card-q">❓ ${esc(item.question)}</div>
-        <div class="review-card-a">${esc(item.generation)}</div>
-        <div class="review-card-c">⚠️ ${esc(item.critique||'Quality concerns detected.')}</div>
-        <div class="review-actions">
-          <button class="btn btn-green btn-sm" onclick="doReview('${item.query_id}','approve')"><i class="fas fa-check"></i> Approve</button>
-          <button class="btn btn-red   btn-sm" onclick="doReview('${item.query_id}','reject')"><i class="fas fa-times"></i> Reject</button>
-        </div>
-      </div>`).join('');
-  } catch(e) {}
-}
-async function doReview(qid,action) {
-  try {
-    await fetch('/api/review/'+qid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
-    document.getElementById('rc-'+qid)?.remove();
-    refreshStats();
-    if(!document.querySelector('.review-card')) document.getElementById('review-list').innerHTML='<p style="color:var(--muted);font-size:.84rem">All reviews complete.</p>';
-  } catch(e) {}
-}
-
-// ── OBSERVABILITY ─────────────────────────────────────────────────────────
-async function loadObs() {
-  try {
-    const r=await fetch('/api/observability'); const d=await r.json();
-    document.getElementById('obs-total').textContent   = d.total_calls;
-    document.getElementById('obs-queries').textContent = d.total_queries;
-    const lat=d.avg_latency_ms||{};
-    document.getElementById('obs-avg-plan').textContent = lat.planner   ? lat.planner+'ms'   : '—';
-    document.getElementById('obs-avg-gen').textContent  = lat.generator ? lat.generator+'ms' : '—';
-    renderObsCharts(d);
-  } catch(e) {}
-}
-function isDark(){return document.documentElement.getAttribute('data-theme')!=='light'}
-function gc(){return isDark()?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)'}
-function tc(){return isDark()?'#8892a4':'#4b5675'}
-function tt(){return{backgroundColor:isDark()?'rgba(7,13,31,.95)':'rgba(255,255,255,.97)',titleColor:isDark()?'#e2e8f0':'#0f172a',bodyColor:isDark()?'#8892a4':'#4b5675',borderColor:isDark()?'rgba(79,142,247,.3)':'rgba(37,99,235,.2)',borderWidth:1}}
-function renderObsCharts(d) {
-  const agents=['planner','retriever','grader','rewriter','generator','critic'];
-  const colors=['rgba(79,142,247,.7)','rgba(6,182,212,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.65)','rgba(167,139,250,.7)','rgba(239,68,68,.5)'];
-  const t=tc(),g=gc(),tip=tt();
-  if(obsChart)obsChart.destroy();
-  obsChart=new Chart(document.getElementById('obs-chart'),{type:'bar',data:{labels:agents,datasets:[{label:'Total Calls',data:agents.map(a=>(d.agent_calls||{})[a]||0),backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'Calls',color:t,font:{size:11}}}}}});
-  if(latChart)latChart.destroy();
-  latChart=new Chart(document.getElementById('lat-chart'),{type:'bar',data:{labels:agents,datasets:[{label:'Avg Latency (ms)',data:agents.map(a=>(d.avg_latency_ms||{})[a]||0),backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'ms',color:t,font:{size:11}}}}}});
-}
-
-// ── TOOLS ─────────────────────────────────────────────────────────────────
-async function runTool(name,inpId,outId,btn){
-  const inp=document.getElementById(inpId).value.trim(); if(!inp)return;
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
-  const outEl=document.getElementById(outId); outEl.style.display='block'; outEl.textContent='Running…';
+async function up(file){
+  if(!file.name.toLowerCase().endsWith('.pdf')){sm('pdf-msg','error','Only PDF files are supported.');return;}
+  sm('pdf-msg','info','Uploading '+file.name+'...');
+  const fd=new FormData();fd.append('file',file);
   try{
-    const r=await fetch('/api/tool/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:inp})});
+    const r=await fetch('/api/upload',{method:'POST',body:fd});
     const d=await r.json();
-    outEl.textContent=d.error?'❌ '+d.error:d.result;
-    outEl.classList.toggle('lit',!d.error);
-  }catch(e){outEl.textContent='❌ '+e.message;}
-  btn.disabled=false;
-  const icons={web_search:'<i class="fas fa-search"></i> Search',calculator:'<i class="fas fa-equals"></i> Calculate',code:'<i class="fas fa-play"></i> Run'};
-  btn.innerHTML=icons[name]||'Run';
+    if(d.error){sm('pdf-msg','error',d.error);return;}
+    src(d.filename,d.chunks);sm('pdf-msg','ok','Indexed '+d.chunks+' chunks from "'+d.filename+'"');
+  }catch(e){sm('pdf-msg','error','Upload failed: '+e.message);}
 }
 
-// ── UTILS ─────────────────────────────────────────────────────────────────
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
-function showErr(id,msg){document.getElementById(id).innerHTML=`<div class="err-box"><i class="fas fa-exclamation-triangle"></i><div>${msg}</div></div>`}
-function clearErr(id){document.getElementById(id).innerHTML=''}
-function copyText(id,btn){
-  navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>{
-    btn.innerHTML='<i class="fas fa-check"></i> Copied!';
-    setTimeout(()=>{btn.innerHTML='<i class="fas fa-copy"></i> Copy';},1800);
-  });
+async function fetchURL(){
+  const url=document.getElementById('url-inp').value.trim();
+  if(!url){sm('url-msg','error','Please enter a URL.');return;}
+  document.getElementById('url-btn').disabled=true;
+  sm('url-msg','info','Fetching page...');
+  try{
+    const r=await fetch('/api/ingest_url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await r.json();
+    if(d.error){sm('url-msg','error',d.error);return;}
+    src(d.url,d.chunks);sm('url-msg','ok','Indexed '+d.chunks+' chunks');
+  }catch(e){sm('url-msg','error','Failed: '+e.message);}
+  finally{document.getElementById('url-btn').disabled=false;}
 }
 
-// ── MODEL SELECTOR ────────────────────────────────────────────────────────────
-
-const MODEL_ICONS = {
-  "zephyr-7b": "🦅",
-  "phi3-mini":  "🔷",
-  "gemma2-2b":  "💎",
-  "falcon-7b":  "🦅",
-  "mistral-v2": "🌀",
-};
-
-let modelsData = {};
-
-async function loadModels() {
-  try {
-    const r = await fetch('/api/models');
-    const d = await r.json();
-    modelsData = d.models;
-    renderModelOpts(d.models, d.current);
-    updateModelPill(d.current, d.models);
-  } catch(e) {}
+function src(name,chunks){
+  document.getElementById('source-name').textContent=name;
+  document.getElementById('source-chunks').textContent=chunks+' chunks indexed';
+  document.getElementById('source-card').style.display='';
+  const p=document.getElementById('source-pill');
+  p.textContent=name.length>32?name.slice(0,32)+'...':name;
+  p.classList.add('loaded');
 }
 
-function renderModelOpts(models, current) {
-  const list = document.getElementById('model-opts-list');
-  list.innerHTML = Object.entries(models).map(([key, m]) => `
-    <div class="model-opt ${key===current?'active':''}" onclick="selectModel('${key}')">
-      <div class="model-opt-icon" style="background:rgba(79,142,247,.1)">${MODEL_ICONS[key]||'🤖'}</div>
-      <div>
-        <div class="model-opt-name">${m.label}</div>
-        <div class="model-opt-desc">${m.description}</div>
-        <div class="model-opt-meta">
-          <span class="model-meta-tag speed-${m.speed}">${m.speed}</span>
-          <span class="model-meta-tag params-tag">${m.params}</span>
-          ${key===current ? '<span class="model-meta-tag" style="background:rgba(34,197,94,.12);color:var(--green)">✓ active</span>' : ''}
-        </div>
-      </div>
-    </div>`).join('');
+function qk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask();}}
+
+async function ask(){
+  const q=document.getElementById('q-inp').value.trim();
+  document.getElementById('q-err').textContent='';
+  if(!q){document.getElementById('q-err').textContent='Please enter a question.';return;}
+  document.getElementById('trace-wrap').style.display='';
+  document.getElementById('trace-log').innerHTML='<div class="t-step"><span class="t-msg" style="color:var(--muted)">Starting agents...</span></div>';
+  document.getElementById('answer-wrap').style.display='none';
+  document.getElementById('ask-btn').disabled=true;
+  seen=0;clearInterval(pollTimer);
+  try{
+    const r=await fetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const d=await r.json();
+    if(d.error){document.getElementById('q-err').textContent=d.error;document.getElementById('ask-btn').disabled=false;return;}
+    pollTimer=setInterval(()=>poll(d.query_id),2000);
+  }catch(e){document.getElementById('q-err').textContent=e.message;document.getElementById('ask-btn').disabled=false;}
 }
 
-function updateModelPill(key, models) {
-  const m = models[key];
-  if (!m) return;
-  document.getElementById('model-pill-label').textContent = m.label;
+async function poll(qid){
+  try{
+    const r=await fetch('/api/trace/'+qid);
+    const d=await r.json();
+    rt(d.trace||[]);
+    if(['complete','error'].includes(d.status)){
+      clearInterval(pollTimer);
+      document.getElementById('ask-btn').disabled=false;
+      if(d.status==='complete'&&d.result)ra(d.result);
+      else if(d.status==='error'&&d.result)document.getElementById('q-err').textContent=d.result.error||'An error occurred.';
+    }
+  }catch(e){}
 }
 
-async function selectModel(key) {
-  try {
-    const r = await fetch('/api/set_model', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model_key: key})});
-    const d = await r.json();
-    if (d.error) { alert(d.error); return; }
-    renderModelOpts(modelsData, key);
-    updateModelPill(key, modelsData);
-    closeModelDropdown();
-  } catch(e) {}
+function rt(steps){
+  if(!steps.length)return;
+  const log=document.getElementById('trace-log');
+  if(seen===0)log.innerHTML='';
+  for(let i=seen;i<steps.length;i++){
+    const s=steps[i];
+    const lat=s.latency_ms>0?'<span class="t-lat">'+s.latency_ms+'ms</span>':'';
+    log.innerHTML+='<div class="t-step"><span class="t-badge b-'+s.agent+'">'+s.agent+'</span><span class="t-msg">'+esc(s.message)+'</span>'+lat+'</div>';
+  }
+  seen=steps.length;log.scrollTop=log.scrollHeight;
 }
 
-function toggleModelDropdown() {
-  document.getElementById('model-dropdown').classList.toggle('open');
-}
-function closeModelDropdown() {
-  document.getElementById('model-dropdown').classList.remove('open');
+function ra(result){
+  document.getElementById('answer-wrap').style.display='';
+  document.getElementById('answer-text').textContent=result.generation||'No answer generated.';
+  const v=document.getElementById('verdict');
+  if(result.verdict==='APPROVED'){v.className='v-ok';v.textContent='High confidence';}
+  else if(result.verdict){v.className='v-warn';v.textContent='Low confidence - verify with source';}
+  else{v.textContent='';}
 }
 
-// Close dropdown when clicking outside
-document.addEventListener('click', e => {
-  const wrap = document.getElementById('model-selector-wrap');
-  if (wrap && !wrap.contains(e.target)) closeModelDropdown();
-});
-
-loadModels();
+function sm(id,type,msg){
+  const el=document.getElementById(id);
+  if(type==='ok')el.innerHTML='<div class="msg msg-ok">'+esc(msg)+'</div>';
+  else if(type==='error')el.innerHTML='<div class="msg msg-err">'+esc(msg)+'</div>';
+  else el.innerHTML='<div class="msg-info">'+esc(msg)+'</div>';
+}
 </script>
 </body>
 </html>

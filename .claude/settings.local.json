@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /e/HuggingFace/docmind/*.py /e/HuggingFace/docmind/**/*.py)",
+      "Bash(python3:*)"
+    ]
+  }
+}
