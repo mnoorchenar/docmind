@@ -1,1 +1,16 @@
-﻿flask==3.0.0
+flask==3.1.0
+python-dotenv==1.0.1
+langgraph==0.2.55
+langchain==0.3.7
+langchain-huggingface==0.1.2
+langchain-core==0.3.21
+langchain-community==0.3.7
+huggingface-hub==0.26.2
+sentence-transformers==3.3.1
+faiss-cpu==1.9.0
+rank-bm25==0.2.2
+pypdf==5.1.0
+duckduckgo-search==6.3.7
+numpy==1.26.4
+gunicorn==23.0.0
+werkzeug==3.1.3
