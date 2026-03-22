@@ -1,6 +1,5 @@
-import os
-from langchain_huggingface import HuggingFaceEndpoint
 from langchain.prompts import PromptTemplate
+from agents.llm_factory import make_llm
 
 _TEMPLATE = """You are an expert research analyst. Answer the question using ONLY the context below.
 Cite sources as [Source: filename, p.N] inline. If the context lacks enough information, say so clearly.
@@ -13,21 +12,13 @@ Question: {question}
 Answer:"""
 
 def run_generator(question: str, documents: list) -> str:
-    context_parts = []
-    for d in documents:
-        src  = d.get("source", "unknown")
-        page = d.get("page", "?")
-        context_parts.append(f"[Source: {src}, p.{page}]\n{d['page_content']}")
+    context_parts = [
+        f"[Source: {d.get('source','unknown')}, p.{d.get('page','?')}]\n{d['page_content']}"
+        for d in documents
+    ]
     context = "\n\n".join(context_parts) if context_parts else "No context available."
-
-    llm = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-        task="text-generation",
-        max_new_tokens=512,
-        temperature=0.4,
-        huggingfacehub_api_token=os.getenv("HF_TOKEN", ""),
-        timeout=90,
-    )
-    chain  = PromptTemplate(input_variables=["question", "context"], template=_TEMPLATE) | llm
-    result = chain.invoke({"question": question, "context": context})
+    llm     = make_llm("mistralai/Mistral-7B-Instruct-v0.3", max_new_tokens=512, temperature=0.4)
+    chain   = PromptTemplate(input_variables=["question", "context"], template=_TEMPLATE) | llm
+    result  = chain.invoke({"question": question, "context": context})
     return result.strip() if isinstance(result, str) else str(result).strip()
+

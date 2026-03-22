@@ -1,11 +1,14 @@
-import os, re, requests
+# SearchIngestor updated with retry logic for DuckDuckGo rate limits.
+
+import os, re, time, requests
 from pypdf import PdfReader
 from bs4 import BeautifulSoup
+from duckduckgo_search.exceptions import RatelimitException
 
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
-MAX_PDF_BYTES = 10 * 1024 * 1024   # 10 MB hard limit
+MAX_PDF_BYTES = 10 * 1024 * 1024
 
 
 class PDFIngestor:
@@ -38,15 +41,13 @@ class PDFIngestor:
     def ingest(self, path: str) -> list:
         size = os.path.getsize(path)
         if size > MAX_PDF_BYTES:
-            raise ValueError(f"File exceeds 10 MB limit ({size / 1024 / 1024:.1f} MB). Please upload a smaller file.")
+            raise ValueError(f"File exceeds 10 MB limit ({size/1024/1024:.1f} MB).")
         filename = os.path.basename(path)
         pages    = self._extract_text(path)
         return self._chunk(pages, filename)
 
 
 class URLIngestor:
-    """Fetches a public URL, strips HTML boilerplate, and returns text chunks."""
-
     def __init__(self, chunk_size: int = 500, chunk_overlap: int = 80):
         self.chunk_size    = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -55,15 +56,11 @@ class URLIngestor:
         resp = requests.get(url, headers=_HEADERS, timeout=20)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "lxml")
-        # Remove noise tags
-        for tag in soup(["script", "style", "nav", "footer", "header",
-                          "aside", "form", "noscript", "iframe", "ads"]):
+        for tag in soup(["script","style","nav","footer","header","aside","form","noscript","iframe"]):
             tag.decompose()
-        # Prefer main content area if it exists
         main = soup.find("main") or soup.find("article") or soup.find("body") or soup
         text = main.get_text(separator=" ", strip=True)
-        text = re.sub(r"\s+", " ", text).strip()
-        return text
+        return re.sub(r"\s+", " ", text).strip()
 
     def _chunk(self, text: str, source: str) -> list:
         words  = text.split()
@@ -81,32 +78,39 @@ class URLIngestor:
     def ingest(self, url: str) -> list:
         text = self._fetch_text(url)
         if len(text) < 100:
-            raise ValueError("Could not extract meaningful content from this URL. The page may require JavaScript or block bots.")
-        # Truncate very large pages to keep indexing fast
+            raise ValueError("Could not extract meaningful content. The page may require JavaScript or block bots.")
         words = text.split()
         if len(words) > 15000:
-            words = words[:15000]
-            text  = " ".join(words)
-        # Use domain as source label
+            text = " ".join(words[:15000])
         from urllib.parse import urlparse
         source = urlparse(url).netloc or url
         return self._chunk(text, source)
 
 
 class SearchIngestor:
-    """Search DuckDuckGo with an optional site: operator, then fetch the top result."""
-
     def __init__(self):
         self._url_ingestor = URLIngestor()
 
-    def search_and_ingest(self, query: str, site: str = "") -> dict:
+    def _ddg_search(self, query: str, max_results: int = 5) -> list:
+        """DuckDuckGo search with retry on rate limit."""
         from duckduckgo_search import DDGS
+        last_error = None
+        for attempt in range(3):
+            try:
+                with DDGS() as ddgs:
+                    return list(ddgs.text(query, max_results=max_results))
+            except RatelimitException as e:
+                last_error = e
+                time.sleep((attempt + 1) * 5)   # 5s, 10s, 15s
+            except Exception as e:
+                raise ValueError(f"Search failed: {e}")
+        raise ValueError(f"DuckDuckGo rate limited after 3 attempts. Wait a few seconds and try again. ({last_error})")
+
+    def search_and_ingest(self, query: str, site: str = "") -> dict:
         full_query = f"site:{site} {query}" if site.strip() else query
-        with DDGS() as ddgs:
-            hits = list(ddgs.text(full_query, max_results=5))
+        hits       = self._ddg_search(full_query)
         if not hits:
             raise ValueError("No search results found for this query.")
-        # Try results in order until one fetches successfully
         last_error = None
         for hit in hits:
             url = hit.get("href", "")
@@ -119,4 +123,3 @@ class SearchIngestor:
                 last_error = e
                 continue
         raise ValueError(f"Could not fetch any search result. Last error: {last_error}")
-
