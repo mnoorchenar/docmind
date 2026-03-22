@@ -162,7 +162,7 @@ async function fetchURL(){
 function src(name,chunks){
   document.getElementById('source-name').textContent=name;
   document.getElementById('source-chunks').textContent=chunks+' chunks indexed';
-  document.getElementById('source-card').style.display='';
+  document.getElementById('source-card').style.display='block';
   const p=document.getElementById('source-pill');
   p.textContent=name.length>32?name.slice(0,32)+'...':name;
   p.classList.add('loaded');
@@ -174,7 +174,7 @@ async function ask(){
   const q=document.getElementById('q-inp').value.trim();
   document.getElementById('q-err').textContent='';
   if(!q){document.getElementById('q-err').textContent='Please enter a question.';return;}
-  document.getElementById('trace-wrap').style.display='';
+  document.getElementById('trace-wrap').style.display='block';
   document.getElementById('trace-log').innerHTML='<div class="t-step"><span class="t-msg" style="color:var(--muted)">Starting agents…</span></div>';
   document.getElementById('answer-wrap').style.display='none';
   document.getElementById('ask-btn').disabled=true;
@@ -228,7 +228,7 @@ function rt(steps){
 }
 
 function ra(result){
-  document.getElementById('answer-wrap').style.display='';
+  document.getElementById('answer-wrap').style.display='block';
   document.getElementById('answer-text').textContent=result.generation||'No answer generated.';
   const v=document.getElementById('verdict');
   if(result.verdict==='APPROVED'){v.className='v-ok';v.textContent='High confidence';}
