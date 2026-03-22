@@ -8,26 +8,29 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg:      #070d1f; --sb:    #0b1120; --card:  rgba(255,255,255,.04);
-  --border:  rgba(255,255,255,.08); --hbg:  rgba(255,255,255,.07);
-  --hbd:     rgba(79,142,247,.3);   --text: #e2e8f0; --muted: #8892a4;
-  --accent:  #4f8ef7; --gold:  #f59e0b; --teal: #06b6d4; --green: #22c55e;
-  --red:     #ef4444; --purple:#a78bfa; --sw:   250px; --r: 12px;
-  --font:    'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+:root{
+  --bg:#070d1f;--sb:#0b1120;--card:rgba(255,255,255,.04);
+  --border:rgba(255,255,255,.08);--hbg:rgba(255,255,255,.07);
+  --hbd:rgba(79,142,247,.3);--text:#e2e8f0;--muted:#8892a4;
+  --accent:#4f8ef7;--gold:#f59e0b;--teal:#06b6d4;--green:#22c55e;
+  --red:#ef4444;--purple:#a78bfa;--sw:250px;--r:12px;
+  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
 }
-[data-theme="light"] {
-  --bg:#f8fafc; --sb:#f1f5f9; --card:rgba(0,0,0,.03); --border:rgba(0,0,0,.08);
-  --hbg:rgba(0,0,0,.05); --hbd:rgba(37,99,235,.25); --text:#0f172a; --muted:#4b5675;
+[data-theme="light"]{
+  --bg:#f8fafc;--sb:#f1f5f9;--card:rgba(0,0,0,.03);--border:rgba(0,0,0,.08);
+  --hbg:rgba(0,0,0,.05);--hbd:rgba(37,99,235,.25);--text:#0f172a;--muted:#4b5675;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;transition:background .3s,color .3s}
-a{text-decoration:none} code{font-family:var(--mono);font-size:.86em;background:rgba(79,142,247,.1);padding:2px 6px;border-radius:4px}
+a{text-decoration:none}
+code{font-family:var(--mono);font-size:.86em;background:rgba(79,142,247,.1);padding:2px 6px;border-radius:4px}
+
 /* ── SIDEBAR ── */
 #sb{width:var(--sw);min-width:var(--sw);height:100vh;background:var(--sb);border-right:1px solid var(--border);position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;overflow:hidden;transition:background .3s}
 .sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
 .sb-logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4f8ef7,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.sb-logo-text{font-size:.88rem;font-weight:900;line-height:1.2} .sb-logo-sub{font-size:.65rem;color:var(--muted);font-weight:500}
+.sb-logo-text{font-size:.88rem;font-weight:900;line-height:1.2}
+.sb-logo-sub{font-size:.65rem;color:var(--muted);font-weight:500}
 .sb-nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
 .nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .18s;border:1px solid transparent;white-space:nowrap}
 .nav-item i{width:17px;text-align:center;font-size:.82rem}
@@ -37,6 +40,7 @@ a{text-decoration:none} code{font-family:var(--mono);font-size:.86em;background:
 .sb-footer{padding:12px 14px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted)}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
 /* ── MAIN ── */
 #main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
 #topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);transition:background .3s}
@@ -45,10 +49,12 @@ a{text-decoration:none} code{font-family:var(--mono);font-size:.86em;background:
 .topbar-right{display:flex;align-items:center;gap:8px}
 .icon-btn{width:32px;height:32px;border-radius:7px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.78rem;color:var(--muted);transition:all .18s}
 .icon-btn:hover{background:var(--hbg);color:var(--text)}
+
 /* ── PAGES ── */
 .page{display:none;padding:24px;animation:fadeIn .22s ease}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
 /* ── CARDS ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:border-color .2s,background .2s}
 .card+.card{margin-top:18px}
@@ -60,13 +66,22 @@ a{text-decoration:none} code{font-family:var(--mono);font-size:.86em;background:
 .s-tag-gold{background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
 .s-tag-teal{background:rgba(6,182,212,.1);color:var(--teal);border:1px solid rgba(6,182,212,.2)}
 .grad{background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
 /* ── FORM ── */
 textarea,input[type="text"],input[type="file"]{width:100%;background:rgba(0,0,0,.25);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-family:var(--font);font-size:.86rem;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
 [data-theme="light"] textarea,[data-theme="light"] input[type="text"]{background:rgba(255,255,255,.7)}
 textarea:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.1)}
-textarea{min-height:90px}
+textarea{min-height:80px}
 label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
 .field{margin-bottom:14px}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
+.tab-btn{padding:7px 16px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--muted);transition:.18s;font-family:var(--font)}
+.tab-btn.active{background:rgba(79,142,247,.12);color:var(--accent);border-color:rgba(79,142,247,.3)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .18s;font-family:var(--font);white-space:nowrap}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
@@ -79,22 +94,32 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .btn-ghost{background:var(--card);color:var(--muted);border-color:var(--border)}
 .btn-ghost:hover:not(:disabled){background:var(--hbg);color:var(--text)}
 .btn-sm{padding:5px 12px;font-size:.74rem}
+.btn-gold{background:rgba(245,158,11,.12);color:var(--gold);border-color:rgba(245,158,11,.3)}
+.btn-gold:hover:not(:disabled){background:rgba(245,158,11,.22);transform:translateY(-1px)}
+
 /* ── OUTPUT ── */
 .output-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.86rem;line-height:1.7;color:var(--text);min-height:70px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s}
 [data-theme="light"] .output-box{background:rgba(255,255,255,.6)}
 .output-box.lit{border-color:rgba(79,142,247,.25)}
+
 /* ── SPINNER ── */
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-row{display:flex;align-items:center;gap:9px;padding:10px 0;color:var(--muted);font-size:.83rem}
+
 /* ── ERROR ── */
 .err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:10px 14px;color:#fca5a5;font-size:.82rem;margin-top:8px;display:flex;gap:9px;align-items:flex-start}
 .err-box i{color:var(--red);margin-top:2px;flex-shrink:0}
+
+/* ── SUCCESS BOX ── */
+.ok-box{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:10px 14px;color:#86efac;font-size:.83rem;margin-top:10px}
+
 /* ── STATS ROW ── */
 .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
 .stat-item{background:var(--card);padding:16px 10px;text-align:center}
 .stat-v{font-size:1.5rem;font-weight:900;line-height:1;margin-bottom:3px}
 .stat-l{font-size:.68rem;color:var(--muted)}
+
 /* ── HOME GRID ── */
 .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
 .home-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .2s;text-align:left}
@@ -102,7 +127,30 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .home-card-icon{font-size:1.7rem;margin-bottom:9px}
 .home-card-name{font-size:.88rem;font-weight:800;color:var(--text);margin-bottom:4px}
 .home-card-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
-/* ── AGENT GRAPH SVG ── */
+
+/* ── DEMO CARDS (industry examples) ── */
+.demo-section{margin-bottom:20px}
+.demo-section-title{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.demo-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.demo-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.demo-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.demo-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
+.demo-card:hover{transform:translateY(-2px);border-color:var(--hbd)}
+.demo-card:hover::before{opacity:1}
+.demo-card-icon{font-size:1.4rem;margin-bottom:7px}
+.demo-card-industry{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.demo-card-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3}
+.demo-card-q{font-size:.73rem;color:var(--muted);line-height:1.45;margin-bottom:9px}
+.demo-card-meta{display:flex;gap:6px;flex-wrap:wrap}
+.demo-card-tag{font-size:.65rem;padding:2px 7px;border-radius:5px;font-weight:700}
+
+/* ── SOURCE BAR ── */
+#source-bar{background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.18);border-radius:8px;padding:9px 14px;margin-bottom:16px;display:none;font-size:.82rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#source-bar i{color:var(--accent);flex-shrink:0}
+#source-bar-text{flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#source-bar-chunks{font-size:.72rem;color:var(--teal);white-space:nowrap}
+
+/* ── AGENT GRAPH ── */
 #agent-graph-wrap{width:100%;overflow-x:auto;margin:18px 0}
 #agent-graph{width:100%;max-width:700px;height:200px;display:block;margin:0 auto}
 .ag-node{transition:all .4s}
@@ -115,6 +163,7 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .ag-label{font-size:10px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
 .ag-sub{font-size:8.5px;fill:var(--muted);text-anchor:middle;dominant-baseline:middle;font-family:'Inter',sans-serif}
 .ag-arrow{stroke:rgba(136,146,164,.35);stroke-width:1.5;fill:none;marker-end:url(#arrow)}
+
 /* ── TRACE LOG ── */
 #trace-log{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;padding-right:4px}
 .trace-step{display:flex;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.8rem;animation:fadeIn .2s ease}
@@ -129,10 +178,12 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .trace-msg{color:var(--muted);flex:1;line-height:1.5}
 .trace-ts{font-size:.68rem;color:var(--muted);opacity:.6;flex-shrink:0}
 .trace-lat{font-size:.68rem;color:var(--teal);flex-shrink:0;white-space:nowrap}
+
 /* ── ANSWER CARD ── */
 #answer-card{display:none;margin-top:18px}
 .source-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .source-chip{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);border-radius:6px;padding:2px 9px;font-size:.72rem;color:var(--accent);font-weight:600}
+
 /* ── REVIEW CARDS ── */
 #review-list{display:flex;flex-direction:column;gap:14px}
 .review-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
@@ -140,28 +191,27 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 .review-card-a{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;white-space:pre-wrap}
 .review-card-c{font-size:.76rem;color:var(--red);margin-bottom:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:6px;padding:8px 12px}
 .review-actions{display:flex;gap:8px}
-/* ── OBSERVABILITY ── */
+
+/* ── OBS ── */
 .obs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .obs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
 .obs-val{font-size:1.6rem;font-weight:900;margin-bottom:4px}
 .obs-lbl{font-size:.72rem;color:var(--muted)}
 .chart-wrap{position:relative;height:260px}
+
 /* ── UPLOAD DROP ZONE ── */
-#drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s}
+#drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s}
 #drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,.06)}
-#drop-zone i{font-size:2.2rem;color:var(--muted);margin-bottom:10px;display:block}
-#drop-zone p{color:var(--muted);font-size:.85rem}
-/* ── DOC LIST ── */
-.doc-item{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.82rem;margin-bottom:6px}
-.doc-icon{color:var(--accent)}
-.doc-name{font-weight:600;flex:1}
-.doc-chunks{font-size:.72rem;color:var(--teal)}
+#drop-zone i{font-size:2rem;color:var(--muted);margin-bottom:9px;display:block}
+#drop-zone p{color:var(--muted);font-size:.84rem}
+
 /* ── TOOL PLAYGROUND ── */
 .tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .tool-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
 .tool-icon{font-size:1.8rem;margin-bottom:8px}
 .tool-name{font-size:.88rem;font-weight:800;margin-bottom:4px}
 .tool-desc{font-size:.74rem;color:var(--muted);margin-bottom:12px;line-height:1.5}
+
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
   #sb{width:52px;min-width:52px}
@@ -169,13 +219,13 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
   .sb-logo{justify-content:center;padding:12px 8px}
   .nav-item{justify-content:center;padding:11px}
   #main{margin-left:52px}
-  .home-grid,.tool-grid{grid-template-columns:1fr 1fr}
+  .home-grid,.tool-grid,.demo-cards{grid-template-columns:1fr 1fr}
   .obs-grid{grid-template-columns:repeat(2,1fr)}
   .stats-row{grid-template-columns:repeat(3,1fr)}
 }
 @media(max-width:600px){
   .page{padding:14px}
-  .home-grid,.tool-grid{grid-template-columns:1fr}
+  .home-grid,.tool-grid,.demo-cards{grid-template-columns:1fr}
   .stats-row{grid-template-columns:repeat(2,1fr)}
 }
 </style>
@@ -189,14 +239,14 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
     <div><div class="sb-logo-text">DocMind</div><div class="sb-logo-sub">Agentic Research</div></div>
   </div>
   <div class="sb-nav">
-    <div class="nav-item active" onclick="nav('home')"     id="nav-home">    <i class="fas fa-home"></i>        <span>Overview</span></div>
-    <div class="nav-item"        onclick="nav('upload')"   id="nav-upload">  <i class="fas fa-upload"></i>      <span>Upload &amp; Index</span></div>
+    <div class="nav-item active" onclick="nav('home')"     id="nav-home">    <i class="fas fa-home"></i>       <span>Overview</span></div>
+    <div class="nav-item"        onclick="nav('ingest')"   id="nav-ingest">  <i class="fas fa-database"></i>   <span>Load Knowledge</span></div>
     <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('research')" id="nav-research"><i class="fas fa-search"></i>      <span>Research Query</span></div>
-    <div class="nav-item"        onclick="nav('review')"   id="nav-review">  <i class="fas fa-eye"></i>         <span>Human Review</span><span id="review-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;margin-left:auto">0</span></div>
+    <div class="nav-item"        onclick="nav('research')" id="nav-research"><i class="fas fa-search"></i>     <span>Research Query</span></div>
+    <div class="nav-item"        onclick="nav('review')"   id="nav-review">  <i class="fas fa-eye"></i>        <span>Human Review</span><span id="review-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;margin-left:auto">0</span></div>
     <div class="nav-sep"></div>
-    <div class="nav-item"        onclick="nav('obs')"      id="nav-obs">     <i class="fas fa-chart-line"></i>  <span>Observability</span></div>
-    <div class="nav-item"        onclick="nav('tools')"    id="nav-tools">   <i class="fas fa-tools"></i>       <span>Tool Playground</span></div>
+    <div class="nav-item"        onclick="nav('obs')"      id="nav-obs">     <i class="fas fa-chart-line"></i> <span>Observability</span></div>
+    <div class="nav-item"        onclick="nav('tools')"    id="nav-tools">   <i class="fas fa-tools"></i>      <span>Tool Playground</span></div>
   </div>
   <div class="sb-footer">
     <div><span class="status-dot"></span><span id="sb-status">Checking…</span></div>
@@ -205,7 +255,6 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
 
 <!-- ── MAIN ── -->
 <div id="main">
-
 <div id="topbar">
   <div id="topbar-title"><i class="fas fa-wand-magic-sparkles"></i><span id="topbar-label">Overview</span></div>
   <div class="topbar-right">
@@ -214,70 +263,186 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: HOME
-═════════════════════════════════ -->
+<!-- ═══════ PAGE: HOME ═══════ -->
 <div class="page active" id="page-home">
   <div style="text-align:center;padding:28px 0 20px">
     <h1 style="font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;margin-bottom:8px">🧠 <span class="grad">DocMind</span></h1>
-    <p style="color:var(--muted);font-size:.92rem;max-width:500px;margin:0 auto;line-height:1.65">A production-grade agentic research platform. Five specialized LangGraph agents collaborate to retrieve, grade, generate, and critique answers from your documents.</p>
+    <p style="color:var(--muted);font-size:.92rem;max-width:520px;margin:0 auto;line-height:1.65">Five LangGraph agents collaborate to retrieve, grade, generate, and critique answers from any URL, web search, or uploaded PDF. No hallucination. Full trace. Human-in-the-loop.</p>
   </div>
   <div class="stats-row" id="home-stats">
-    <div class="stat-item"><div class="stat-v grad" id="st-docs">0</div><div class="stat-l">PDFs Indexed</div></div>
+    <div class="stat-item"><div class="stat-v grad" id="st-docs">0</div><div class="stat-l">Sources Indexed</div></div>
     <div class="stat-item"><div class="stat-v grad" id="st-chunks">0</div><div class="stat-l">Chunks Stored</div></div>
     <div class="stat-item"><div class="stat-v grad" id="st-queries">0</div><div class="stat-l">Queries Run</div></div>
     <div class="stat-item"><div class="stat-v grad" id="st-complete">0</div><div class="stat-l">Completed</div></div>
     <div class="stat-item"><div class="stat-v grad" id="st-review">0</div><div class="stat-l">Pending Review</div></div>
   </div>
   <div class="home-grid">
-    <div class="home-card" onclick="nav('upload')"><div class="home-card-icon">📤</div><div class="home-card-name">Upload &amp; Index</div><div class="home-card-desc">Upload PDFs. Chunks are embedded with BAAI/bge-small-en-v1.5 locally and stored in a FAISS + BM25 hybrid index.</div></div>
-    <div class="home-card" onclick="nav('research')"><div class="home-card-icon">🔍</div><div class="home-card-name">Research Query</div><div class="home-card-desc">Ask any question. Watch the five LangGraph agents plan, retrieve, grade, generate, and critique in real time.</div></div>
-    <div class="home-card" onclick="nav('review')"><div class="home-card-icon">👁️</div><div class="home-card-name">Human Review</div><div class="home-card-desc">Answers flagged by the Critic agent appear here for your approval before being returned to the user.</div></div>
-    <div class="home-card" onclick="nav('obs')"><div class="home-card-icon">📊</div><div class="home-card-name">Observability</div><div class="home-card-desc">Live trace of every agent decision, per-agent latency, token usage, and retrieval quality scores.</div></div>
-    <div class="home-card" onclick="nav('tools')"><div class="home-card-icon">🔧</div><div class="home-card-name">Tool Playground</div><div class="home-card-desc">Test web search, calculator, and sandboxed code execution — the three tools the Planner agent can invoke.</div></div>
-    <div class="home-card" style="cursor:default">
-      <div class="home-card-icon">🤗</div>
-      <div class="home-card-name">Free HF Models</div>
-      <div class="home-card-desc" id="hf-status">Mistral-7B · Zephyr-7B · bge-small. Token: <span id="hf-token-status" style="color:var(--red)">not set</span></div>
-    </div>
+    <div class="home-card" onclick="nav('ingest')"><div class="home-card-icon">🌐</div><div class="home-card-name">Load Knowledge</div><div class="home-card-desc">Paste a URL, search the web, or upload a PDF (max 10 MB). Previous source is cleared automatically.</div></div>
+    <div class="home-card" onclick="nav('research')"><div class="home-card-icon">🔍</div><div class="home-card-name">Research Query</div><div class="home-card-desc">Ask any question. Watch five LangGraph agents plan, retrieve, grade, generate, and critique in real time.</div></div>
+    <div class="home-card" onclick="nav('review')"><div class="home-card-icon">👁️</div><div class="home-card-name">Human Review</div><div class="home-card-desc">Answers flagged by the Critic agent appear here for your approval before delivery.</div></div>
+    <div class="home-card" onclick="nav('obs')"><div class="home-card-icon">📊</div><div class="home-card-name">Observability</div><div class="home-card-desc">Per-agent latency, call counts, and live trace — LangSmith-style without the paid plan.</div></div>
+    <div class="home-card" onclick="nav('tools')"><div class="home-card-icon">🔧</div><div class="home-card-name">Tool Playground</div><div class="home-card-desc">Test web search, calculator, and sandboxed code execution independently.</div></div>
+    <div class="home-card" style="cursor:default"><div class="home-card-icon">🤗</div><div class="home-card-name">Free HF Models</div><div class="home-card-desc">Mistral-7B · Zephyr-7B · bge-small. Token: <span id="hf-token-status" style="color:var(--red)">checking…</span></div></div>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: UPLOAD
-═════════════════════════════════ -->
-<div class="page" id="page-upload">
-  <div class="s-tag s-tag-blue">FAISS + BM25 Hybrid Index · BAAI/bge-small-en-v1.5 (local)</div>
-  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-upload"></i> Upload &amp; Index Documents</div>
+<!-- ═══════ PAGE: INGEST ═══════ -->
+<div class="page" id="page-ingest">
+  <div class="s-tag s-tag-blue">One source active at a time · Previous cleared on each load · PDF max 10 MB</div>
+  <div class="card-title" style="margin-bottom:16px"><i class="fas fa-database"></i> Load Knowledge Base</div>
+
+  <!-- Active source indicator -->
+  <div id="source-bar">
+    <i class="fas fa-circle-check"></i>
+    <span id="source-bar-text">No source loaded</span>
+    <span id="source-bar-chunks"></span>
+    <button class="btn btn-ghost btn-sm" onclick="nav('research')"><i class="fas fa-search"></i> Start Researching</button>
+  </div>
+
   <div class="card">
-    <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="dropOver(event)" ondragleave="dropLeave(event)" ondrop="dropFile(event)">
-      <i class="fas fa-file-pdf"></i>
-      <p><strong style="color:var(--text)">Click to upload</strong> or drag a PDF here</p>
-      <p style="margin-top:4px;font-size:.75rem">PDF files only · Max recommended 20 pages for free HF inference tier</p>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchIngTab('url',this)"><i class="fas fa-link"></i> Paste URL</button>
+      <button class="tab-btn"        onclick="switchIngTab('search',this)"><i class="fas fa-search"></i> Web Search</button>
+      <button class="tab-btn"        onclick="switchIngTab('pdf',this)"><i class="fas fa-file-pdf"></i> Upload PDF</button>
     </div>
-    <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="uploadFile(this.files[0])">
-    <div id="upload-progress" style="display:none;margin-top:12px">
-      <div class="loading-row"><div class="spinner"></div> Chunking, embedding, and indexing…</div>
+
+    <!-- URL tab -->
+    <div class="tab-panel active" id="ing-url">
+      <div class="field">
+        <label>Public URL</label>
+        <input type="text" id="url-input" placeholder="https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7" oninput="clearErr('ing-err')">
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Any publicly accessible web page. JavaScript-rendered pages may not work — prefer static HTML pages, Wikipedia articles, government sites, and documentation.</p>
+      <button class="btn btn-primary" id="url-btn" onclick="runIngestURL()"><i class="fas fa-cloud-download-alt"></i> Fetch &amp; Index</button>
     </div>
-    <div id="upload-result"></div>
+
+    <!-- Search tab -->
+    <div class="tab-panel" id="ing-search">
+      <div class="field">
+        <label>Search Query</label>
+        <input type="text" id="search-query" placeholder="e.g. diabetes prevention guidelines WHO 2024" oninput="clearErr('ing-err')">
+      </div>
+      <div class="field">
+        <label>Restrict to Site <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — e.g. who.int or arxiv.org)</span></label>
+        <input type="text" id="search-site" placeholder="who.int">
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Searches DuckDuckGo (no API key needed), fetches the top matching page, and indexes it automatically.</p>
+      <button class="btn btn-primary" id="search-btn" onclick="runSearchIngest()"><i class="fas fa-search"></i> Search &amp; Index Top Result</button>
+    </div>
+
+    <!-- PDF tab -->
+    <div class="tab-panel" id="ing-pdf">
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="dropOver(event)" ondragleave="dropLeave(event)" ondrop="dropFile(event)">
+        <i class="fas fa-file-pdf"></i>
+        <p><strong style="color:var(--text)">Click to upload</strong> or drag a PDF here</p>
+        <p style="margin-top:4px;font-size:.74rem;color:var(--red)">⚠️ Max 10 MB · Replaces current knowledge base · Free HF disk is limited</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="uploadFile(this.files[0])">
+      <div id="upload-progress" style="display:none;margin-top:12px">
+        <div class="loading-row"><div class="spinner"></div> Chunking, embedding, and indexing…</div>
+      </div>
+    </div>
+
+    <div id="ing-err"></div>
+    <div id="ing-ok"></div>
   </div>
+
+  <!-- Indexed source list -->
   <div class="card" style="margin-top:16px">
-    <div class="card-title"><i class="fas fa-database"></i> Indexed Documents</div>
-    <div id="doc-list"><p style="color:var(--muted);font-size:.83rem">No documents indexed yet.</p></div>
+    <div class="card-title"><i class="fas fa-layer-group"></i> Current Knowledge Base</div>
+    <div id="kb-status" style="color:var(--muted);font-size:.83rem">No source loaded yet. Use one of the three methods above.</div>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: RESEARCH
-═════════════════════════════════ -->
+<!-- ═══════ PAGE: RESEARCH ═══════ -->
 <div class="page" id="page-research">
   <div class="s-tag s-tag-blue">LangGraph · 5 Agents · Corrective RAG · Human-in-the-Loop</div>
   <div class="card-title" style="margin-bottom:14px"><i class="fas fa-search"></i> Research Query</div>
 
+  <!-- Industry demo cards -->
+  <div class="demo-section">
+    <div class="demo-section-title"><i class="fas fa-bolt" style="color:var(--gold)"></i> Quick Start — Industry Examples</div>
+    <div class="demo-cards" id="demo-cards-grid">
+
+      <div class="demo-card" onclick="loadDemo(this)" data-url="https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7" data-q="What is the return window for electronics purchased on Amazon, and what conditions must be met?">
+        <div class="demo-card-icon">🛒</div>
+        <div class="demo-card-industry" style="color:var(--gold)">Retail</div>
+        <div class="demo-card-title">Amazon Return Policy</div>
+        <div class="demo-card-q">"What is the return window for electronics and what conditions must be met?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(245,158,11,.12);color:var(--gold)">URL</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">amazon.com</span>
+        </div>
+      </div>
+
+      <div class="demo-card" onclick="loadDemo(this)" data-url="https://www.who.int/news-room/fact-sheets/detail/diabetes" data-q="What are WHO's recommended prevention and management strategies for Type 2 diabetes?">
+        <div class="demo-card-icon">🏥</div>
+        <div class="demo-card-industry" style="color:var(--teal)">Healthcare</div>
+        <div class="demo-card-title">WHO Diabetes Guidelines</div>
+        <div class="demo-card-q">"What are WHO's recommended prevention and management strategies for Type 2 diabetes?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(6,182,212,.1);color:var(--teal)">URL</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">who.int</span>
+        </div>
+      </div>
+
+      <div class="demo-card" onclick="loadDemo(this)" data-search="LangGraph multi-agent RAG paper" data-site="arxiv.org" data-q="What methodology did the authors use and what were the main findings of this research?">
+        <div class="demo-card-icon">🎓</div>
+        <div class="demo-card-industry" style="color:var(--purple)">Research</div>
+        <div class="demo-card-title">ArXiv — LangGraph Paper</div>
+        <div class="demo-card-q">"What methodology did the authors use and what were the main findings?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(167,139,250,.12);color:var(--purple)">Search</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">arxiv.org</span>
+        </div>
+      </div>
+
+      <div class="demo-card" onclick="loadDemo(this)" data-search="FDIC consumer rights bank account protection" data-site="fdic.gov" data-q="What are the key consumer protections and deposit insurance limits for bank account holders?">
+        <div class="demo-card-icon">🏦</div>
+        <div class="demo-card-industry" style="color:var(--green)">Banking</div>
+        <div class="demo-card-title">FDIC Consumer Rights</div>
+        <div class="demo-card-q">"What are the key consumer protections and deposit insurance limits for bank account holders?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(34,197,94,.1);color:var(--green)">Search</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">fdic.gov</span>
+        </div>
+      </div>
+
+      <div class="demo-card" onclick="loadDemo(this)" data-search="insurance policy exclusions common clauses explained" data-site="" data-q="What are the most common exclusion clauses in insurance policies and how do they affect claims?">
+        <div class="demo-card-icon">⚖️</div>
+        <div class="demo-card-industry" style="color:var(--red)">Insurance</div>
+        <div class="demo-card-title">Policy Exclusions Guide</div>
+        <div class="demo-card-q">"What are the most common exclusion clauses and how do they affect claims?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(239,68,68,.1);color:var(--red)">Search</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">Web</span>
+        </div>
+      </div>
+
+      <div class="demo-card" onclick="loadDemo(this)" data-url="https://en.wikipedia.org/wiki/Artificial_intelligence" data-q="What are the main subfields of artificial intelligence and what problems does each one solve?">
+        <div class="demo-card-icon">🤖</div>
+        <div class="demo-card-industry" style="color:var(--accent)">Technology</div>
+        <div class="demo-card-title">AI Overview — Wikipedia</div>
+        <div class="demo-card-q">"What are the main subfields of AI and what problems does each one solve?"</div>
+        <div class="demo-card-meta">
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.12);color:var(--accent)">URL</span>
+          <span class="demo-card-tag" style="background:rgba(79,142,247,.1);color:var(--accent)">wikipedia.org</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Active source indicator -->
+  <div id="res-source-bar" style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:.8rem;color:var(--muted);display:none">
+    <i class="fas fa-database" style="color:var(--green)"></i> Active source: <strong id="res-source-label" style="color:var(--text)"></strong>
+    <span id="res-chunk-count" style="color:var(--teal);margin-left:8px"></span>
+  </div>
+
   <div class="card">
     <div class="field">
-      <label>Your Research Question</label>
-      <textarea id="q-input" placeholder="Ask anything about your uploaded documents…" rows="3" onkeydown="researchKeydown(event)"></textarea>
+      <label>Research Question</label>
+      <textarea id="q-input" placeholder="Ask anything about the loaded source…" rows="3" onkeydown="researchKeydown(event)"></textarea>
     </div>
     <button class="btn btn-primary" id="q-btn" onclick="runResearch()"><i class="fas fa-bolt"></i> Run Research</button>
     <div id="q-err"></div>
@@ -293,14 +458,11 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
             <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(136,146,164,.4)"/>
           </marker>
         </defs>
-        <!-- Arrows -->
         <line class="ag-arrow" x1="95"  y1="70" x2="160" y2="70" marker-end="url(#arrow)"/>
         <line class="ag-arrow" x1="245" y1="70" x2="310" y2="70" marker-end="url(#arrow)"/>
         <line class="ag-arrow" x1="395" y1="70" x2="460" y2="70" marker-end="url(#arrow)"/>
         <line class="ag-arrow" x1="545" y1="70" x2="610" y2="70" marker-end="url(#arrow)"/>
-        <!-- Rewriter loop arrow -->
         <path class="ag-arrow" d="M 350 105 Q 350 150 280 150 Q 210 150 205 105" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
-        <!-- Nodes -->
         <g class="ag-node ag-node-idle" id="gn-planner">
           <rect x="5" y="44" width="90" height="52" rx="10"/>
           <text class="ag-label ag-pulse" x="50" y="63">PLANNER</text>
@@ -332,15 +494,12 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
         </g>
       </svg>
     </div>
-
-    <!-- Trace Log -->
     <div style="margin-top:4px">
       <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Agent Trace</div>
       <div id="trace-log"><p style="color:var(--muted);font-size:.8rem">Waiting for agent execution…</p></div>
     </div>
   </div>
 
-  <!-- Answer Card -->
   <div class="card" id="answer-card">
     <div class="card-title"><i class="fas fa-check-circle" style="color:var(--green)"></i> Research Answer</div>
     <div class="output-box lit" id="answer-output"></div>
@@ -350,30 +509,25 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
     </div>
   </div>
 
-  <!-- Flagged for review -->
   <div class="card" id="flagged-card" style="display:none;border-color:rgba(245,158,11,.3)">
     <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--gold)"></i> Flagged for Human Review</div>
-    <p style="color:var(--muted);font-size:.85rem">The Critic agent flagged this answer for potential quality issues. Go to <strong>Human Review</strong> to approve or reject it.</p>
+    <p style="color:var(--muted);font-size:.85rem">The Critic flagged this answer. Go to <strong>Human Review</strong> to approve or reject.</p>
     <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="nav('review')"><i class="fas fa-eye"></i> Go to Review Queue</button>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: HUMAN REVIEW
-═════════════════════════════════ -->
+<!-- ═══════ PAGE: REVIEW ═══════ -->
 <div class="page" id="page-review">
   <div class="s-tag s-tag-gold">Human-in-the-Loop · Critic Agent Escalations</div>
   <div class="card-title" style="margin-bottom:16px"><i class="fas fa-eye"></i> Human Review Queue</div>
   <div id="review-list"><p style="color:var(--muted);font-size:.84rem">No answers pending review.</p></div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: OBSERVABILITY
-═════════════════════════════════ -->
+<!-- ═══════ PAGE: OBSERVABILITY ═══════ -->
 <div class="page" id="page-obs">
   <div class="s-tag s-tag-teal">LangSmith-Style Tracing · Per-Agent Metrics</div>
   <div class="card-title" style="margin-bottom:16px"><i class="fas fa-chart-line"></i> Observability Dashboard</div>
-  <div class="obs-grid" id="obs-cards">
+  <div class="obs-grid">
     <div class="obs-card"><div class="obs-val grad" id="obs-total">0</div><div class="obs-lbl">Total Agent Calls</div></div>
     <div class="obs-card"><div class="obs-val grad" id="obs-queries">0</div><div class="obs-lbl">Total Queries</div></div>
     <div class="obs-card"><div class="obs-val grad" id="obs-avg-plan">—</div><div class="obs-lbl">Avg Planner Latency</div></div>
@@ -389,78 +543,68 @@ label{font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-b
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PAGE: TOOLS
-═════════════════════════════════ -->
+<!-- ═══════ PAGE: TOOLS ═══════ -->
 <div class="page" id="page-tools">
   <div class="s-tag s-tag-blue">Function Calling · Tool Use</div>
   <div class="card-title" style="margin-bottom:16px"><i class="fas fa-tools"></i> Tool Playground</div>
   <div class="tool-grid">
-
     <div class="tool-card">
       <div class="tool-icon">🌐</div>
       <div class="tool-name">Web Search</div>
-      <div class="tool-desc">DuckDuckGo free search — no API key required. Used by the Planner when web context is needed.</div>
+      <div class="tool-desc">DuckDuckGo free search — no API key. Used by the Planner agent when web context is needed.</div>
       <div class="field"><label>Search Query</label><textarea id="ws-inp" rows="2" placeholder="e.g. LangGraph tutorial 2025"></textarea></div>
       <button class="btn btn-primary btn-sm" id="ws-btn" onclick="runTool('web_search','ws-inp','ws-out',this)"><i class="fas fa-search"></i> Search</button>
       <div id="ws-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
     </div>
-
     <div class="tool-card">
       <div class="tool-icon">🧮</div>
       <div class="tool-name">Calculator</div>
-      <div class="tool-desc">Safe AST-based math evaluator supporting +, −, ×, ÷, ^, and all Python math module functions.</div>
+      <div class="tool-desc">Safe AST-based math evaluator supporting +, −, ×, ÷, ^ and all Python math functions.</div>
       <div class="field"><label>Expression</label><textarea id="calc-inp" rows="2" placeholder="e.g. sqrt(144) + log(100)"></textarea></div>
       <button class="btn btn-primary btn-sm" id="calc-btn" onclick="runTool('calculator','calc-inp','calc-out',this)"><i class="fas fa-equals"></i> Calculate</button>
       <div id="calc-out" class="output-box" style="margin-top:10px;min-height:60px;display:none"></div>
     </div>
-
     <div class="tool-card">
       <div class="tool-icon">💻</div>
       <div class="tool-name">Code Runner</div>
-      <div class="tool-desc">Sandboxed Python execution with safe builtins only (no file I/O, no network). Captures stdout output.</div>
+      <div class="tool-desc">Sandboxed Python execution with safe builtins only. No file I/O or network access.</div>
       <div class="field"><label>Python Code</label><textarea id="code-inp" rows="4" placeholder="x = [i**2 for i in range(10)]&#10;print(sum(x))"></textarea></div>
       <button class="btn btn-primary btn-sm" id="code-btn" onclick="runTool('code','code-inp','code-out',this)"><i class="fas fa-play"></i> Run</button>
       <div id="code-out" class="output-box" style="margin-top:10px;min-height:60px;display:none;font-family:var(--mono)"></div>
     </div>
-
   </div>
 </div>
 
 </div><!-- /#main -->
 
-<!-- ════════════════════════════════════════════════════
-     JAVASCRIPT
-═════════════════════════════════════════════════════ -->
 <script>
-// ── GLOBALS ─────────────────────────────────────────────────────────────
-let currentQid    = null;
-let pollTimer     = null;
-let seenSteps     = 0;
-let uploadedDocs  = [];   // {name, chunks}
-let obsChart      = null;
-let latChart      = null;
+// ── GLOBALS ──────────────────────────────────────────────────────────────
+let currentQid  = null;
+let pollTimer   = null;
+let seenSteps   = 0;
+let obsChart    = null;
+let latChart    = null;
 
 const PAGE_LABELS = {
-  home:'Overview', upload:'Upload & Index', research:'Research Query',
+  home:'Overview', ingest:'Load Knowledge', research:'Research Query',
   review:'Human Review', obs:'Observability', tools:'Tool Playground'
 };
-
 const NODE_AGENT_MAP = {
   planner:'gn-planner', retriever:'gn-retriever', grader:'gn-grader',
   rewriter:'gn-rewriter', generator:'gn-generator', critic:'gn-critic',
   human_review:'gn-critic'
 };
 
-// ── NAVIGATION ──────────────────────────────────────────────────────────
+// ── NAVIGATION ───────────────────────────────────────────────────────────
 function nav(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.getElementById('nav-'  + id).classList.add('active');
+  document.getElementById('page-'  + id).classList.add('active');
+  document.getElementById('nav-'   + id).classList.add('active');
   document.getElementById('topbar-label').textContent = PAGE_LABELS[id];
   if (id === 'obs')    loadObs();
   if (id === 'review') loadReview();
+  if (id === 'research') refreshSourceBar();
 }
 
 // ── THEME ────────────────────────────────────────────────────────────────
@@ -471,118 +615,210 @@ function toggleTheme() {
   document.getElementById('theme-icon').className = light ? 'fas fa-moon' : 'fas fa-sun';
   localStorage.setItem('dm-theme', light ? 'light' : 'dark');
 }
-(function(){ const t = localStorage.getItem('dm-theme') || 'dark'; document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-icon').className = t==='dark'?'fas fa-moon':'fas fa-sun'; })();
+(function(){ const t = localStorage.getItem('dm-theme')||'dark'; document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-icon').className = t==='dark'?'fas fa-moon':'fas fa-sun'; })();
 
-// ── HEALTH CHECK ─────────────────────────────────────────────────────────
+// ── HEALTH + STATS ───────────────────────────────────────────────────────
 async function checkHealth() {
   try {
     const r = await fetch('/health'); const d = await r.json();
     document.getElementById('sb-status').textContent = d.token_set ? 'HF Token Active' : 'Token Missing';
-    document.getElementById('hf-token-status').textContent  = d.token_set ? 'set ✅' : 'not set ❌';
-    document.getElementById('hf-token-status').style.color  = d.token_set ? 'var(--green)' : 'var(--red)';
+    document.getElementById('hf-token-status').textContent = d.token_set ? 'set ✅' : 'not set ❌';
+    document.getElementById('hf-token-status').style.color = d.token_set ? 'var(--green)' : 'var(--red)';
   } catch(e) {}
 }
 async function refreshStats() {
   try {
     const r = await fetch('/api/stats'); const d = await r.json();
-    document.getElementById('st-docs').textContent    = d.docs_indexed;
-    document.getElementById('st-chunks').textContent  = d.chunks_stored;
-    document.getElementById('st-queries').textContent = d.queries_run;
-    document.getElementById('st-complete').textContent= d.queries_complete;
-    document.getElementById('st-review').textContent  = d.pending_review;
-    // Review badge
+    document.getElementById('st-docs').textContent     = d.docs_indexed;
+    document.getElementById('st-chunks').textContent   = d.chunks_stored;
+    document.getElementById('st-queries').textContent  = d.queries_run;
+    document.getElementById('st-complete').textContent = d.queries_complete;
+    document.getElementById('st-review').textContent   = d.pending_review;
     const badge = document.getElementById('review-badge');
     badge.style.display = d.pending_review > 0 ? 'inline' : 'none';
-    badge.textContent = d.pending_review;
+    badge.textContent   = d.pending_review;
+    updateKBStatus(d);
   } catch(e) {}
+}
+function updateKBStatus(d) {
+  const bar  = document.getElementById('source-bar');
+  const text = document.getElementById('source-bar-text');
+  const chk  = document.getElementById('source-bar-chunks');
+  if (d.chunks_stored > 0 && d.source) {
+    bar.style.display  = 'flex';
+    text.textContent   = d.source;
+    chk.textContent    = `${d.chunks_stored} chunks`;
+    document.getElementById('kb-status').innerHTML =
+      `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+        <i class="fas fa-circle-check" style="color:var(--green)"></i>
+        <div><div style="font-weight:700;font-size:.85rem;color:var(--text)">${esc(d.source)}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${d.chunks_stored} chunks indexed · Ready to query</div></div>
+      </div>`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function refreshSourceBar() {
+  fetch('/api/stats').then(r=>r.json()).then(d => {
+    const bar = document.getElementById('res-source-bar');
+    if (d.chunks_stored > 0 && d.source) {
+      bar.style.display = 'flex';
+      document.getElementById('res-source-label').textContent = d.source;
+      document.getElementById('res-chunk-count').textContent  = `${d.chunks_stored} chunks`;
+    } else {
+      bar.style.display = 'none';
+    }
+  }).catch(()=>{});
 }
 checkHealth();
 refreshStats();
 setInterval(refreshStats, 8000);
 
-// ── UPLOAD ───────────────────────────────────────────────────────────────
+// ── INGESTION TABS ───────────────────────────────────────────────────────
+function switchIngTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ing-' + id).classList.add('active');
+  clearErr('ing-err');
+  document.getElementById('ing-ok').innerHTML = '';
+}
+
+function showIngOk(msg) {
+  document.getElementById('ing-ok').innerHTML = `<div class="ok-box">✅ ${msg}</div>`;
+}
+
+// ── URL INGEST ───────────────────────────────────────────────────────────
+async function runIngestURL() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
+  const btn = document.getElementById('url-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Fetching…';
+  try {
+    const r = await fetch('/api/ingest_url', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url})});
+    const d = await r.json();
+    if (d.error) { showErr('ing-err', d.error); return; }
+    showIngOk(`Fetched and indexed <strong>${esc(d.url)}</strong> — ${d.chunks} chunks stored.`);
+    refreshStats();
+  } catch(e) { showErr('ing-err', e.message); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-cloud-download-alt"></i> Fetch & Index'; }
+}
+
+// ── SEARCH INGEST ────────────────────────────────────────────────────────
+async function runSearchIngest() {
+  const query = document.getElementById('search-query').value.trim();
+  const site  = document.getElementById('search-site').value.trim();
+  if (!query) return;
+  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Searching…';
+  try {
+    const r = await fetch('/api/search_ingest', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, site})});
+    const d = await r.json();
+    if (d.error) { showErr('ing-err', d.error); return; }
+    showIngOk(`Found <strong>${esc(d.title)}</strong> — indexed ${d.chunks} chunks from <code>${esc(d.url)}</code>`);
+    refreshStats();
+  } catch(e) { showErr('ing-err', e.message); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-search"></i> Search & Index Top Result'; }
+}
+
+// ── PDF UPLOAD ───────────────────────────────────────────────────────────
 function dropOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
 function dropLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
 function dropFile(e)  { e.preventDefault(); dropLeave(e); if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); }
 
 async function uploadFile(file) {
-  if (!file || !file.name.endsWith('.pdf')) {
-    showErr('upload-result', 'Only PDF files are supported.'); return;
-  }
+  if (!file || !file.name.endsWith('.pdf')) { showErr('ing-err','Only PDF files are supported.'); return; }
+  if (file.size > 10*1024*1024) { showErr('ing-err',`File is ${(file.size/1024/1024).toFixed(1)} MB — maximum is 10 MB.`); return; }
+  clearErr('ing-err'); document.getElementById('ing-ok').innerHTML = '';
   document.getElementById('upload-progress').style.display = 'block';
-  document.getElementById('upload-result').innerHTML = '';
   const fd = new FormData(); fd.append('file', file);
   try {
     const r = await fetch('/api/upload', {method:'POST', body:fd});
     const d = await r.json();
     document.getElementById('upload-progress').style.display = 'none';
-    if (d.error) { showErr('upload-result', d.error); return; }
-    uploadedDocs.push({name: d.filename, chunks: d.chunks});
-    renderDocList();
-    document.getElementById('upload-result').innerHTML =
-      `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.83rem;color:var(--green)">✅ <strong>${d.filename}</strong> indexed — ${d.chunks} chunks · Total: ${d.total_chunks} chunks across ${d.total_docs} doc(s).</div>`;
+    if (d.error) { showErr('ing-err', d.error); return; }
+    showIngOk(`Uploaded <strong>${esc(d.filename)}</strong> — ${d.chunks} chunks indexed.`);
     refreshStats();
   } catch(e) {
     document.getElementById('upload-progress').style.display = 'none';
-    showErr('upload-result', e.message);
+    showErr('ing-err', e.message);
   }
 }
 
-function renderDocList() {
-  const el = document.getElementById('doc-list');
-  if (!uploadedDocs.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.83rem">No documents indexed yet.</p>'; return; }
-  el.innerHTML = uploadedDocs.map(d => `
-    <div class="doc-item">
-      <i class="fas fa-file-pdf doc-icon"></i>
-      <span class="doc-name">${d.name}</span>
-      <span class="doc-chunks">${d.chunks} chunks</span>
-    </div>`).join('');
+// ── DEMO CARDS ───────────────────────────────────────────────────────────
+async function loadDemo(card) {
+  const url    = card.dataset.url    || '';
+  const search = card.dataset.search || '';
+  const site   = card.dataset.site   || '';
+  const q      = card.dataset.q      || '';
+
+  // Highlight selected card
+  document.querySelectorAll('.demo-card').forEach(c => c.style.opacity = '0.5');
+  card.style.opacity = '1';
+  card.style.borderColor = 'var(--accent)';
+
+  // Pre-fill question
+  document.getElementById('q-input').value = q;
+
+  // Navigate to ingest, load source, then come back
+  nav('ingest');
+  clearErr('ing-err');
+  document.getElementById('ing-ok').innerHTML = '';
+
+  if (url) {
+    switchIngTab('url', document.querySelectorAll('.tab-btn')[0]);
+    document.getElementById('url-input').value = url;
+    await runIngestURL();
+  } else if (search) {
+    switchIngTab('search', document.querySelectorAll('.tab-btn')[1]);
+    document.getElementById('search-query').value = search;
+    document.getElementById('search-site').value  = site;
+    await runSearchIngest();
+  }
+
+  // Reset card styles and go to research
+  document.querySelectorAll('.demo-card').forEach(c => { c.style.opacity='1'; c.style.borderColor=''; });
+  nav('research');
 }
 
 // ── RESEARCH ─────────────────────────────────────────────────────────────
-function researchKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runResearch(); } }
+function researchKeydown(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();runResearch();} }
 
 async function runResearch() {
   const q = document.getElementById('q-input').value.trim();
   if (!q) return;
   clearErr('q-err');
   resetGraph();
-  document.getElementById('graph-card').style.display  = 'block';
-  document.getElementById('answer-card').style.display = 'none';
-  document.getElementById('flagged-card').style.display= 'none';
+  document.getElementById('graph-card').style.display   = 'block';
+  document.getElementById('answer-card').style.display  = 'none';
+  document.getElementById('flagged-card').style.display = 'none';
   document.getElementById('trace-log').innerHTML = '<p style="color:var(--muted);font-size:.8rem">Starting agents…</p>';
   document.getElementById('q-btn').disabled = true;
   seenSteps = 0;
 
   try {
-    const r = await fetch('/api/research', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question: q})});
+    const r = await fetch('/api/research', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question:q})});
     const d = await r.json();
     if (d.error) { showErr('q-err', d.error); document.getElementById('q-btn').disabled=false; return; }
     currentQid = d.query_id;
     pollTimer  = setInterval(pollTrace, 2000);
-  } catch(e) {
-    showErr('q-err', e.message);
-    document.getElementById('q-btn').disabled = false;
-  }
+  } catch(e) { showErr('q-err', e.message); document.getElementById('q-btn').disabled=false; }
 }
 
 async function pollTrace() {
   if (!currentQid) return;
   try {
-    const r = await fetch('/api/trace/' + currentQid);
+    const r = await fetch('/api/trace/'+currentQid);
     const d = await r.json();
-    renderTraceSteps(d.trace || []);
-    if (d.status === 'complete' || d.status === 'pending_review' || d.status === 'error') {
+    renderTraceSteps(d.trace||[]);
+    if (['complete','pending_review','error'].includes(d.status)) {
       clearInterval(pollTimer);
       document.getElementById('q-btn').disabled = false;
-      if (d.status === 'complete' && d.result) {
-        renderAnswer(d.result);
-      } else if (d.status === 'pending_review') {
-        document.getElementById('flagged-card').style.display = 'block';
-        loadReview();
-      } else if (d.status === 'error' && d.result) {
-        showErr('q-err', d.result.error || 'Unknown error.');
-      }
+      if (d.status==='complete'&&d.result) renderAnswer(d.result);
+      else if (d.status==='pending_review') { document.getElementById('flagged-card').style.display='block'; loadReview(); }
+      else if (d.status==='error'&&d.result) showErr('q-err', d.result.error||'Unknown error.');
       refreshStats();
     }
   } catch(e) {}
@@ -590,19 +826,13 @@ async function pollTrace() {
 
 function renderTraceSteps(steps) {
   const log = document.getElementById('trace-log');
-  if (steps.length === 0) return;
-  if (seenSteps === 0) log.innerHTML = '';
-  for (let i = seenSteps; i < steps.length; i++) {
-    const s   = steps[i];
-    const lat = s.latency_ms > 0 ? `<span class="trace-lat">${s.latency_ms}ms</span>` : '';
-    log.innerHTML += `
-      <div class="trace-step">
-        <span class="trace-badge badge-${s.agent}">${s.agent}</span>
-        <span class="trace-msg">${esc(s.message)}</span>
-        ${lat}
-        <span class="trace-ts">${s.ts}</span>
-      </div>`;
-    setNodeStatus(s.agent, s.status === 'running' ? 'running' : 'complete');
+  if (!steps.length) return;
+  if (seenSteps===0) log.innerHTML='';
+  for (let i=seenSteps; i<steps.length; i++) {
+    const s=steps[i];
+    const lat = s.latency_ms>0 ? `<span class="trace-lat">${s.latency_ms}ms</span>` : '';
+    log.innerHTML += `<div class="trace-step"><span class="trace-badge badge-${s.agent}">${s.agent}</span><span class="trace-msg">${esc(s.message)}</span>${lat}<span class="trace-ts">${s.ts}</span></div>`;
+    setNodeStatus(s.agent, s.status==='running'?'running':'complete');
   }
   seenSteps = steps.length;
   log.scrollTop = log.scrollHeight;
@@ -610,42 +840,38 @@ function renderTraceSteps(steps) {
 
 function renderAnswer(result) {
   document.getElementById('answer-card').style.display = 'block';
-  document.getElementById('answer-output').textContent = result.generation || 'No answer generated.';
+  document.getElementById('answer-output').textContent = result.generation||'No answer generated.';
   const chips = document.getElementById('source-chips');
   chips.innerHTML = '';
   if (result.graded_docs) {
-    const sources = [...new Set(result.graded_docs.map(d => `${d.source} p.${d.page}`))];
-    sources.forEach(s => { chips.innerHTML += `<span class="source-chip">📄 ${s}</span>`; });
+    [...new Set(result.graded_docs.map(d=>`${d.source} p.${d.page}`))].forEach(s => {
+      chips.innerHTML += `<span class="source-chip">📄 ${s}</span>`;
+    });
   }
 }
 
 function resetGraph() {
-  ['planner','retriever','grader','rewriter','generator','critic'].forEach(a => setNodeStatus(a, 'idle'));
-  document.getElementById('gn-rewriter').style.opacity = '.5';
+  ['planner','retriever','grader','rewriter','generator','critic'].forEach(a=>setNodeStatus(a,'idle'));
+  document.getElementById('gn-rewriter').style.opacity='.5';
 }
-
-function setNodeStatus(agent, status) {
-  const id = NODE_AGENT_MAP[agent];
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.className = `ag-node ag-node-${status}`;
-  if (agent === 'rewriter') el.style.opacity = status === 'idle' ? '.5' : '1';
+function setNodeStatus(agent,status) {
+  const id=NODE_AGENT_MAP[agent]; if(!id)return;
+  const el=document.getElementById(id); if(!el)return;
+  el.className=`ag-node ag-node-${status}`;
+  if(agent==='rewriter') el.style.opacity=status==='idle'?'.5':'1';
 }
 
 // ── HUMAN REVIEW ─────────────────────────────────────────────────────────
 async function loadReview() {
   try {
-    const r = await fetch('/api/review'); const d = await r.json();
-    const list = document.getElementById('review-list');
-    if (!d.pending || !d.pending.length) {
-      list.innerHTML = '<p style="color:var(--muted);font-size:.84rem">No answers pending review. The Critic agent will route flagged answers here.</p>'; return;
-    }
-    list.innerHTML = d.pending.map(item => `
+    const r=await fetch('/api/review'); const d=await r.json();
+    const list=document.getElementById('review-list');
+    if(!d.pending||!d.pending.length){list.innerHTML='<p style="color:var(--muted);font-size:.84rem">No answers pending review.</p>';return;}
+    list.innerHTML=d.pending.map(item=>`
       <div class="review-card" id="rc-${item.query_id}">
         <div class="review-card-q">❓ ${esc(item.question)}</div>
         <div class="review-card-a">${esc(item.generation)}</div>
-        <div class="review-card-c">⚠️ Critic flag: ${esc(item.critique || 'Quality concerns detected.')}</div>
+        <div class="review-card-c">⚠️ ${esc(item.critique||'Quality concerns detected.')}</div>
         <div class="review-actions">
           <button class="btn btn-green btn-sm" onclick="doReview('${item.query_id}','approve')"><i class="fas fa-check"></i> Approve</button>
           <button class="btn btn-red   btn-sm" onclick="doReview('${item.query_id}','reject')"><i class="fas fa-times"></i> Reject</button>
@@ -653,89 +879,65 @@ async function loadReview() {
       </div>`).join('');
   } catch(e) {}
 }
-
-async function doReview(qid, action) {
+async function doReview(qid,action) {
   try {
-    await fetch('/api/review/'+qid, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action})});
+    await fetch('/api/review/'+qid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
     document.getElementById('rc-'+qid)?.remove();
     refreshStats();
-    if (!document.querySelector('.review-card')) {
-      document.getElementById('review-list').innerHTML = '<p style="color:var(--muted);font-size:.84rem">All reviews complete.</p>';
-    }
+    if(!document.querySelector('.review-card')) document.getElementById('review-list').innerHTML='<p style="color:var(--muted);font-size:.84rem">All reviews complete.</p>';
   } catch(e) {}
 }
 
 // ── OBSERVABILITY ─────────────────────────────────────────────────────────
 async function loadObs() {
   try {
-    const r  = await fetch('/api/observability'); const d = await r.json();
+    const r=await fetch('/api/observability'); const d=await r.json();
     document.getElementById('obs-total').textContent   = d.total_calls;
     document.getElementById('obs-queries').textContent = d.total_queries;
-    const lat = d.avg_latency_ms || {};
+    const lat=d.avg_latency_ms||{};
     document.getElementById('obs-avg-plan').textContent = lat.planner   ? lat.planner+'ms'   : '—';
     document.getElementById('obs-avg-gen').textContent  = lat.generator ? lat.generator+'ms' : '—';
     renderObsCharts(d);
   } catch(e) {}
 }
-
-function isDark() { return document.documentElement.getAttribute('data-theme') !== 'light'; }
-function gc()     { return isDark() ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)'; }
-function tc()     { return isDark() ? '#8892a4' : '#4b5675'; }
-function tt()     {
-  return {
-    backgroundColor: isDark() ? 'rgba(7,13,31,.95)' : 'rgba(255,255,255,.97)',
-    titleColor: isDark() ? '#e2e8f0' : '#0f172a',
-    bodyColor:  isDark() ? '#8892a4' : '#4b5675',
-    borderColor: isDark() ? 'rgba(79,142,247,.3)' : 'rgba(37,99,235,.2)',
-    borderWidth: 1
-  };
-}
-
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light'}
+function gc(){return isDark()?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)'}
+function tc(){return isDark()?'#8892a4':'#4b5675'}
+function tt(){return{backgroundColor:isDark()?'rgba(7,13,31,.95)':'rgba(255,255,255,.97)',titleColor:isDark()?'#e2e8f0':'#0f172a',bodyColor:isDark()?'#8892a4':'#4b5675',borderColor:isDark()?'rgba(79,142,247,.3)':'rgba(37,99,235,.2)',borderWidth:1}}
 function renderObsCharts(d) {
-  const agents = ['planner','retriever','grader','rewriter','generator','critic'];
-  const calls  = agents.map(a => (d.agent_calls||{})[a] || 0);
-  const lats   = agents.map(a => (d.avg_latency_ms||{})[a] || 0);
-  const colors = ['rgba(79,142,247,.7)','rgba(6,182,212,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.65)','rgba(167,139,250,.7)','rgba(239,68,68,.5)'];
-  const t = tc(), g = gc(), tip = tt();
-
-  if (obsChart) obsChart.destroy();
-  obsChart = new Chart(document.getElementById('obs-chart'), {
-    type:'bar', data:{ labels:agents, datasets:[{label:'Total Calls', data:calls, backgroundColor:colors, borderRadius:6}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:t}},tooltip:tip}, scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'Calls',color:t,font:{size:11}}}} }
-  });
-  if (latChart) latChart.destroy();
-  latChart = new Chart(document.getElementById('lat-chart'), {
-    type:'bar', data:{ labels:agents, datasets:[{label:'Avg Latency (ms)', data:lats, backgroundColor:colors, borderRadius:6}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:t}},tooltip:tip}, scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'ms',color:t,font:{size:11}}}} }
-  });
+  const agents=['planner','retriever','grader','rewriter','generator','critic'];
+  const colors=['rgba(79,142,247,.7)','rgba(6,182,212,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.65)','rgba(167,139,250,.7)','rgba(239,68,68,.5)'];
+  const t=tc(),g=gc(),tip=tt();
+  if(obsChart)obsChart.destroy();
+  obsChart=new Chart(document.getElementById('obs-chart'),{type:'bar',data:{labels:agents,datasets:[{label:'Total Calls',data:agents.map(a=>(d.agent_calls||{})[a]||0),backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'Calls',color:t,font:{size:11}}}}}});
+  if(latChart)latChart.destroy();
+  latChart=new Chart(document.getElementById('lat-chart'),{type:'bar',data:{labels:agents,datasets:[{label:'Avg Latency (ms)',data:agents.map(a=>(d.avg_latency_ms||{})[a]||0),backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},beginAtZero:true,title:{display:true,text:'ms',color:t,font:{size:11}}}}}});
 }
 
 // ── TOOLS ─────────────────────────────────────────────────────────────────
-async function runTool(name, inpId, outId, btn) {
-  const inp = document.getElementById(inpId).value.trim();
-  if (!inp) return;
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
-  const outEl = document.getElementById(outId);
-  outEl.style.display = 'block'; outEl.textContent = 'Running…';
-  try {
-    const r = await fetch('/api/tool/'+name, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({input:inp})});
-    const d = await r.json();
-    outEl.textContent = d.error ? '❌ ' + d.error : d.result;
-    outEl.classList.toggle('lit', !d.error);
-  } catch(e) { outEl.textContent = '❌ ' + e.message; }
-  btn.disabled = false;
-  const icons = {web_search:'<i class="fas fa-search"></i> Search', calculator:'<i class="fas fa-equals"></i> Calculate', code:'<i class="fas fa-play"></i> Run'};
-  btn.innerHTML = icons[name] || 'Run';
+async function runTool(name,inpId,outId,btn){
+  const inp=document.getElementById(inpId).value.trim(); if(!inp)return;
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
+  const outEl=document.getElementById(outId); outEl.style.display='block'; outEl.textContent='Running…';
+  try{
+    const r=await fetch('/api/tool/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:inp})});
+    const d=await r.json();
+    outEl.textContent=d.error?'❌ '+d.error:d.result;
+    outEl.classList.toggle('lit',!d.error);
+  }catch(e){outEl.textContent='❌ '+e.message;}
+  btn.disabled=false;
+  const icons={web_search:'<i class="fas fa-search"></i> Search',calculator:'<i class="fas fa-equals"></i> Calculate',code:'<i class="fas fa-play"></i> Run'};
+  btn.innerHTML=icons[name]||'Run';
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-function showErr(id, msg) { document.getElementById(id).innerHTML = `<div class="err-box"><i class="fas fa-exclamation-triangle"></i><div>${msg}</div></div>`; }
-function clearErr(id) { document.getElementById(id).innerHTML = ''; }
-function copyText(id, btn) {
-  navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 1800);
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+function showErr(id,msg){document.getElementById(id).innerHTML=`<div class="err-box"><i class="fas fa-exclamation-triangle"></i><div>${msg}</div></div>`}
+function clearErr(id){document.getElementById(id).innerHTML=''}
+function copyText(id,btn){
+  navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>{
+    btn.innerHTML='<i class="fas fa-check"></i> Copied!';
+    setTimeout(()=>{btn.innerHTML='<i class="fas fa-copy"></i> Copy';},1800);
   });
 }
 </script>
