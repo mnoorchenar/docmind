@@ -1,53 +1,51 @@
 ﻿# ── FILE: agents/llm_factory.py ───────────────────────────────────────────
+# Replaced HuggingFaceEndpoint (broken) with InferenceClient.chat_completion
+# which is the officially supported method as of 2026.
 
 import os
-from langchain_huggingface import HuggingFaceEndpoint
+from huggingface_hub import InferenceClient
 
-_HF_ROUTER = "https://router.huggingface.co/hf-inference/models"
-
-# ── Available free-tier models ────────────────────────────────────────────
-# All confirmed available on the HF free Inference router as of March 2026.
-# "speed" is relative: fast < medium < slow (affects free-tier cold starts).
+# All models below are available through the HF free monthly credits
+# via the router.huggingface.co inference providers (Sambanova, Together, etc.)
 AVAILABLE_MODELS = {
-    "zephyr-7b": {
-        "id":          "HuggingFaceH4/zephyr-7b-beta",
-        "label":       "Zephyr-7B-β",
-        "description": "Fine-tuned for instruction following and evaluation. Confirmed free tier. Best overall balance.",
-        "speed":       "medium",
+    "llama3-8b": {
+        "id":          "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "label":       "Llama 3.1 8B (Meta)",
+        "description": "Meta's Llama 3.1 8B — best balance of quality and speed. Most popular free-tier model in 2026.",
+        "speed":       "fast",
+        "params":      "8B",
+    },
+    "qwen2-7b": {
+        "id":          "Qwen/Qwen2.5-7B-Instruct",
+        "label":       "Qwen 2.5 7B (Alibaba)",
+        "description": "Strong multilingual reasoning. Excellent for structured output and document analysis.",
+        "speed":       "fast",
         "params":      "7B",
     },
-    "phi3-mini": {
-        "id":          "microsoft/Phi-3-mini-4k-instruct",
-        "label":       "Phi-3 Mini (Microsoft)",
-        "description": "3.8B params — very fast responses. Good for simple Q&A and summarization on free tier.",
+    "phi35-mini": {
+        "id":          "microsoft/Phi-3.5-mini-instruct",
+        "label":       "Phi-3.5 Mini (Microsoft)",
+        "description": "3.8B params — fastest option on the free tier. Good for simple Q&A and summarization.",
         "speed":       "fast",
         "params":      "3.8B",
     },
-    "gemma2-2b": {
-        "id":          "google/gemma-2-2b-it",
-        "label":       "Gemma-2 2B (Google)",
-        "description": "Google's smallest instruction-tuned model. Fastest option — ideal for quick demos.",
-        "speed":       "fast",
-        "params":      "2B",
-    },
-    "falcon-7b": {
-        "id":          "tiiuae/falcon-7b-instruct",
-        "label":       "Falcon-7B (TII)",
-        "description": "Classic open-source 7B instruct model from UAE's TII. Good factual recall.",
+    "mistral-7b": {
+        "id":          "mistralai/Mistral-7B-Instruct-v0.3",
+        "label":       "Mistral 7B v0.3",
+        "description": "Strong instruction following. Available via Sambanova provider on free credits.",
         "speed":       "medium",
         "params":      "7B",
     },
-    "mistral-v2": {
-        "id":          "mistralai/Mistral-7B-Instruct-v0.2",
-        "label":       "Mistral-7B v0.2",
-        "description": "Mistral's v0.2 instruct — stronger reasoning than v0.1. May occasionally be unavailable on free tier.",
+    "gemma2-9b": {
+        "id":          "google/gemma-2-9b-it",
+        "label":       "Gemma 2 9B (Google)",
+        "description": "Google's Gemma 2 instruction-tuned — very strong factual grounding.",
         "speed":       "medium",
-        "params":      "7B",
+        "params":      "9B",
     },
 }
 
-# Default model key — must be a key in AVAILABLE_MODELS
-_current_model_key = "zephyr-7b"
+_current_model_key = "llama3-8b"
 
 
 def get_current_model_key() -> str:
@@ -57,7 +55,7 @@ def get_current_model_key() -> str:
 def set_current_model(key: str):
     global _current_model_key
     if key not in AVAILABLE_MODELS:
-        raise ValueError(f"Unknown model key '{key}'. Valid keys: {list(AVAILABLE_MODELS)}")
+        raise ValueError(f"Unknown model key '{key}'. Valid: {list(AVAILABLE_MODELS)}")
     _current_model_key = key
 
 
@@ -65,26 +63,25 @@ def get_current_model_id() -> str:
     return AVAILABLE_MODELS[_current_model_key]["id"]
 
 
-def make_llm(max_new_tokens: int = 512, temperature: float = 0.7) -> HuggingFaceEndpoint:
-    """Build an LLM using whatever model the user currently has selected."""
-    token    = os.getenv("HF_TOKEN", "")
+def call_llm(prompt: str, max_new_tokens: int = 512, temperature: float = 0.7) -> str:
+    """Single unified LLM call using InferenceClient.chat_completion."""
+    token = os.getenv("HF_TOKEN", "")
     if not token:
         raise EnvironmentError("HF_TOKEN is not set. Add your HuggingFace Read token in Space secrets or .env.")
+    client   = InferenceClient(api_key=token)
     model_id = get_current_model_id()
-    return HuggingFaceEndpoint(
-        endpoint_url=f"{_HF_ROUTER}/{model_id}",
-        task="text-generation",
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        huggingfacehub_api_token=token,
-        timeout=90,
+    response = client.chat_completion(
+        model=model_id,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_new_tokens,
+        temperature=max(temperature, 0.01),   # 0.0 is not accepted by all providers
     )
+    return response.choices[0].message.content.strip()
 
 
 # ── FILE: agents/planner.py ───────────────────────────────────────────────
 
-from langchain.prompts import PromptTemplate
-from agents.llm_factory import make_llm
+from agents.llm_factory import call_llm
 
 _TEMPLATE = """You are a research planning agent. Given the user's question, produce a brief research plan.
 Decide: should the answer be grounded in uploaded documents, web search, or both?
@@ -95,16 +92,14 @@ Question: {question}
 Plan:"""
 
 def run_planner(question: str) -> str:
-    chain  = PromptTemplate(input_variables=["question"], template=_TEMPLATE) | make_llm(max_new_tokens=200, temperature=0.3)
-    result = chain.invoke({"question": question})
-    return result.strip() if isinstance(result, str) else str(result).strip()
+    prompt = _TEMPLATE.format(question=question)
+    return call_llm(prompt, max_new_tokens=200, temperature=0.3)
 
 
 # ── FILE: agents/grader.py ────────────────────────────────────────────────
 
 import re
-from langchain.prompts import PromptTemplate
-from agents.llm_factory import make_llm
+from agents.llm_factory import call_llm
 
 _TEMPLATE = """You are a document relevance grader. Rate how relevant this document is to the question.
 Respond with ONLY a decimal number between 0.0 (irrelevant) and 1.0 (highly relevant). Nothing else.
@@ -115,9 +110,8 @@ Document excerpt: {document}
 Relevance score:"""
 
 def grade_document(question: str, document: str) -> float:
-    chain  = PromptTemplate(input_variables=["question","document"], template=_TEMPLATE) | make_llm(max_new_tokens=10, temperature=0.05)
-    result = chain.invoke({"question": question, "document": document[:800]})
-    raw    = result.strip() if isinstance(result, str) else str(result).strip()
+    prompt = _TEMPLATE.format(question=question, document=document[:800])
+    raw    = call_llm(prompt, max_new_tokens=10, temperature=0.05)
     nums   = re.findall(r"[0-9]+\.?[0-9]*", raw)
     return min(float(nums[0]), 1.0) if nums else 0.5
 
@@ -127,8 +121,7 @@ def run_grader(question: str, documents: list) -> list:
 
 # ── FILE: agents/generator.py ─────────────────────────────────────────────
 
-from langchain.prompts import PromptTemplate
-from agents.llm_factory import make_llm
+from agents.llm_factory import call_llm
 
 _TEMPLATE = """You are an expert research analyst. Answer the question using ONLY the context below.
 Cite sources as [Source: filename, p.N] inline. If the context lacks enough information, say so clearly.
@@ -146,16 +139,14 @@ def run_generator(question: str, documents: list) -> str:
         for d in documents
     ]
     context = "\n\n".join(context_parts) if context_parts else "No context available."
-    chain   = PromptTemplate(input_variables=["question","context"], template=_TEMPLATE) | make_llm(max_new_tokens=512, temperature=0.4)
-    result  = chain.invoke({"question": question, "context": context})
-    return result.strip() if isinstance(result, str) else str(result).strip()
+    prompt  = _TEMPLATE.format(question=question, context=context)
+    return call_llm(prompt, max_new_tokens=512, temperature=0.4)
 
 
 # ── FILE: agents/critic.py ────────────────────────────────────────────────
 
 import re
-from langchain.prompts import PromptTemplate
-from agents.llm_factory import make_llm
+from agents.llm_factory import call_llm
 
 _TEMPLATE = """You are a strict quality-control critic. Evaluate this answer for accuracy and grounding.
 Output EXACTLY one of these two lines first, then a one-sentence explanation:
@@ -172,355 +163,8 @@ Evaluation:"""
 
 def run_critic(question: str, answer: str, documents: list) -> dict:
     context = " ".join(d["page_content"] for d in documents)[:1500]
-    chain   = PromptTemplate(input_variables=["question","context","answer"], template=_TEMPLATE) | make_llm(max_new_tokens=150, temperature=0.1)
-    result  = chain.invoke({"question": question, "context": context, "answer": answer})
-    raw     = result.strip() if isinstance(result, str) else str(result).strip()
+    prompt  = _TEMPLATE.format(question=question, context=context, answer=answer)
+    raw     = call_llm(prompt, max_new_tokens=150, temperature=0.1)
     verdict = "NEEDS_REVIEW" if re.search(r"NEEDS_REVIEW", raw, re.IGNORECASE) else "APPROVED"
-    explanation = raw.split("\n",1)[-1].strip() if "\n" in raw else raw
+    explanation = raw.split("\n", 1)[-1].strip() if "\n" in raw else raw
     return {"verdict": verdict, "explanation": explanation[:300]}
-
-
-# ── FILE: app.py ──────────────────────────────────────────────────────────
-# Only the new /api/models and /api/set_model endpoints are added.
-# Everything else is unchanged from the previous version.
-
-import os, uuid, threading
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from rag.vector_store      import HybridVectorStore
-from rag.ingestor          import PDFIngestor, URLIngestor, SearchIngestor, MAX_PDF_BYTES
-from graph.research_graph  import ResearchGraph
-from tracing.tracer        import Tracer
-from tools.web_search      import web_search
-from tools.calculator      import calculate
-from tools.code_tool       import run_code
-from agents.llm_factory    import AVAILABLE_MODELS, get_current_model_key, set_current_model, get_current_model_id
-
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
-
-UPLOAD_FOLDER = "/tmp/docmind_uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-vector_store = HybridVectorStore()
-tracer       = Tracer()
-graph        = ResearchGraph(vector_store, tracer)
-queries      = {}
-
-
-def _clear_uploads():
-    for f in os.listdir(UPLOAD_FOLDER):
-        try: os.remove(os.path.join(UPLOAD_FOLDER, f))
-        except: pass
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/health")
-def health():
-    return jsonify({
-        "status":        "ok",
-        "docs_indexed":  vector_store.doc_count,
-        "chunks_stored": vector_store.chunk_count,
-        "source":        vector_store.source_label,
-        "token_set":     bool(os.getenv("HF_TOKEN")),
-        "active_model":  get_current_model_key(),
-        "active_model_id": get_current_model_id(),
-    })
-
-
-@app.route("/api/models")
-def api_models():
-    current = get_current_model_key()
-    return jsonify({
-        "models":  AVAILABLE_MODELS,
-        "current": current,
-    })
-
-
-@app.route("/api/set_model", methods=["POST"])
-def api_set_model():
-    data = request.json or {}
-    key  = (data.get("model_key") or "").strip()
-    try:
-        set_current_model(key)
-        return jsonify({"success": True, "model_key": key, "model_id": get_current_model_id()})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route("/api/upload", methods=["POST"])
-def upload():
-    if "file" not in request.files:
-        return jsonify({"error": "No file attached."}), 400
-    f = request.files["file"]
-    if not f.filename.lower().endswith(".pdf"):
-        return jsonify({"error": "Only PDF files are supported."}), 400
-    f.seek(0,2); size = f.tell(); f.seek(0)
-    if size > MAX_PDF_BYTES:
-        return jsonify({"error": f"File exceeds 10 MB limit ({size/1024/1024:.1f} MB)."}), 400
-    _clear_uploads()
-    path = os.path.join(UPLOAD_FOLDER, secure_filename(f.filename))
-    f.save(path)
-    try:
-        chunks = PDFIngestor().ingest(path)
-        vector_store.clear()
-        vector_store.add_documents(chunks, source_label=f.filename)
-        return jsonify({"success":True,"filename":f.filename,"chunks":len(chunks),"total_chunks":vector_store.chunk_count,"total_docs":vector_store.doc_count,"source":f.filename})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/ingest_url", methods=["POST"])
-def ingest_url():
-    data = request.json or {}
-    url  = (data.get("url") or "").strip()
-    if not url: return jsonify({"error": "URL is required."}), 400
-    if not url.startswith(("http://","https://")): url = "https://" + url
-    try:
-        chunks = URLIngestor().ingest(url)
-        vector_store.clear(); _clear_uploads()
-        vector_store.add_documents(chunks, source_label=url)
-        return jsonify({"success":True,"url":url,"chunks":len(chunks),"total_chunks":vector_store.chunk_count})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/search_ingest", methods=["POST"])
-def search_ingest():
-    data  = request.json or {}
-    query = (data.get("query") or "").strip()
-    site  = (data.get("site")  or "").strip()
-    if not query: return jsonify({"error": "Search query is required."}), 400
-    try:
-        result = SearchIngestor().search_and_ingest(query, site)
-        chunks = result["chunks"]
-        vector_store.clear(); _clear_uploads()
-        vector_store.add_documents(chunks, source_label=result["url"])
-        return jsonify({"success":True,"url":result["url"],"title":result["title"],"chunks":len(chunks),"total_chunks":vector_store.chunk_count})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/research", methods=["POST"])
-def research():
-    data     = request.json or {}
-    question = (data.get("question") or "").strip()
-    if not question: return jsonify({"error": "Question is required."}), 400
-    if vector_store.doc_count == 0:
-        return jsonify({"error": "No knowledge base loaded — fetch a URL, search, or upload a PDF first."}), 400
-    qid = str(uuid.uuid4())
-    queries[qid] = {"status":"running","result":None}
-    def _run():
-        try:
-            result = graph.run(question, qid)
-            queries[qid]["result"] = result
-            queries[qid]["status"] = "pending_review" if result.get("needs_human_review") else "complete"
-        except Exception as exc:
-            queries[qid]["status"] = "error"
-            queries[qid]["result"] = {"error": str(exc)}
-    threading.Thread(target=_run, daemon=True).start()
-    return jsonify({"query_id": qid})
-
-
-@app.route("/api/trace/<qid>")
-def get_trace(qid):
-    q = queries.get(qid)
-    if not q: return jsonify({"error":"Query not found."}),404
-    return jsonify({"status":q["status"],"trace":tracer.get(qid),"result":q["result"]})
-
-
-@app.route("/api/review")
-def review_queue():
-    pending = [
-        {"query_id":qid,"question":q["result"].get("question","") if q["result"] else "","generation":q["result"].get("generation","") if q["result"] else "","critique":q["result"].get("critique","") if q["result"] else ""}
-        for qid,q in queries.items() if q["status"]=="pending_review" and q["result"]
-    ]
-    return jsonify({"pending": pending})
-
-
-@app.route("/api/review/<qid>", methods=["POST"])
-def review_action(qid):
-    data=request.json or {}; action=data.get("action")
-    if qid not in queries: return jsonify({"error":"Query not found."}),404
-    if action not in ("approve","reject"): return jsonify({"error":"Action must be approve or reject."}),400
-    queries[qid]["status"]="complete" if action=="approve" else "rejected"
-    if queries[qid]["result"]: queries[qid]["result"]["human_approved"]=action=="approve"
-    tracer.add(qid,"human_review",f"Reviewer {action}d this answer.","complete",0)
-    return jsonify({"success":True})
-
-
-@app.route("/api/observability")
-def observability():
-    return jsonify(tracer.stats())
-
-
-@app.route("/api/tool/<name>", methods=["POST"])
-def tool_run(name):
-    inp=((request.json or {}).get("input") or "").strip()
-    if not inp: return jsonify({"error":"Input is required."}),400
-    try:
-        result={"web_search":web_search,"calculator":calculate,"code":run_code}.get(n,lambda _:None)(inp)
-        if result is None: return jsonify({"error":f"Unknown tool '{n}'."}),400
-        return jsonify({"result":result})
-    except Exception as exc:
-        return jsonify({"error":str(exc)}),500
-
-
-@app.route("/api/stats")
-def stats():
-    return jsonify({
-        "docs_indexed":    vector_store.doc_count,
-        "chunks_stored":   vector_store.chunk_count,
-        "source":          vector_store.source_label,
-        "queries_run":     len(queries),
-        "queries_complete":sum(1 for q in queries.values() if q["status"]=="complete"),
-        "pending_review":  sum(1 for q in queries.values() if q["status"]=="pending_review"),
-        "active_model":    get_current_model_key(),
-    })
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=7860, debug=False)
-
-
-# ── PATCH: templates/index.html — model selector additions only ───────────
-#
-# Add this CSS inside the existing <style> block (anywhere before </style>):
-# ─────────────────────────────────────────────────────────────────────────
-
-/*
-/* ── MODEL SELECTOR ── */
-#model-selector-wrap{position:relative}
-#model-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:700;color:var(--text);transition:all .18s;white-space:nowrap}
-#model-pill:hover{background:var(--hbg);border-color:var(--hbd)}
-#model-pill .model-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
-#model-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;width:320px;background:var(--sb);border:1px solid var(--border);border-radius:var(--r);z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden}
-#model-dropdown.open{display:block;animation:fadeIn .18s ease}
-.model-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
-.model-opt:last-child{border-bottom:none}
-.model-opt:hover{background:var(--hbg)}
-.model-opt.active{background:rgba(79,142,247,.1)}
-.model-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:2px}
-.model-opt-name{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
-.model-opt-desc{font-size:.72rem;color:var(--muted);line-height:1.4}
-.model-opt-meta{display:flex;gap:6px;margin-top:5px}
-.model-meta-tag{font-size:.65rem;padding:1px 7px;border-radius:5px;font-weight:700}
-.speed-fast  {background:rgba(34,197,94,.12);color:var(--green)}
-.speed-medium{background:rgba(245,158,11,.12);color:var(--gold)}
-.speed-slow  {background:rgba(239,68,68,.12);color:var(--red)}
-.params-tag  {background:rgba(79,142,247,.1);color:var(--accent)}
-*/
-
-# ─────────────────────────────────────────────────────────────────────────
-# Replace the existing topbar div with this (inside templates/index.html):
-# ─────────────────────────────────────────────────────────────────────────
-
-<!--
-<div id="topbar">
-  <div id="topbar-title"><i class="fas fa-wand-magic-sparkles"></i><span id="topbar-label">Overview</span></div>
-  <div class="topbar-right">
-
-    <!-- Model selector -->
-    <div id="model-selector-wrap">
-      <div id="model-pill" onclick="toggleModelDropdown()">
-        <span class="model-dot"></span>
-        <span id="model-pill-label">Loading…</span>
-        <i class="fas fa-chevron-down" style="font-size:.6rem;color:var(--muted)"></i>
-      </div>
-      <div id="model-dropdown">
-        <div style="padding:10px 16px 8px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border)">Select Model — All Free Tier</div>
-        <div id="model-opts-list"></div>
-      </div>
-    </div>
-
-    <div class="icon-btn" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon" id="theme-icon"></i></div>
-    <a href="https://github.com/mnoorchenar/docmind" target="_blank" class="icon-btn" title="GitHub"><i class="fab fa-github"></i></a>
-  </div>
-</div>
--->
-
-# ─────────────────────────────────────────────────────────────────────────
-# Add this JavaScript block at the bottom of the <script> section
-# (before the closing </script> tag):
-# ─────────────────────────────────────────────────────────────────────────
-
-/*
-// ── MODEL SELECTOR ────────────────────────────────────────────────────────
-
-const MODEL_ICONS = {
-  "zephyr-7b": "🦅",
-  "phi3-mini":  "🔷",
-  "gemma2-2b":  "💎",
-  "falcon-7b":  "🦅",
-  "mistral-v2": "🌀",
-};
-
-let modelsData = {};
-
-async function loadModels() {
-  try {
-    const r = await fetch('/api/models');
-    const d = await r.json();
-    modelsData = d.models;
-    renderModelOpts(d.models, d.current);
-    updateModelPill(d.current, d.models);
-  } catch(e) {}
-}
-
-function renderModelOpts(models, current) {
-  const list = document.getElementById('model-opts-list');
-  list.innerHTML = Object.entries(models).map(([key, m]) => `
-    <div class="model-opt ${key===current?'active':''}" onclick="selectModel('${key}')">
-      <div class="model-opt-icon" style="background:rgba(79,142,247,.1)">${MODEL_ICONS[key]||'🤖'}</div>
-      <div>
-        <div class="model-opt-name">${m.label}</div>
-        <div class="model-opt-desc">${m.description}</div>
-        <div class="model-opt-meta">
-          <span class="model-meta-tag speed-${m.speed}">${m.speed}</span>
-          <span class="model-meta-tag params-tag">${m.params}</span>
-          ${key===current ? '<span class="model-meta-tag" style="background:rgba(34,197,94,.12);color:var(--green)">✓ active</span>' : ''}
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function updateModelPill(key, models) {
-  const m = models[key];
-  if (!m) return;
-  document.getElementById('model-pill-label').textContent = m.label;
-}
-
-async function selectModel(key) {
-  try {
-    const r = await fetch('/api/set_model', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model_key: key})});
-    const d = await r.json();
-    if (d.error) { alert(d.error); return; }
-    renderModelOpts(modelsData, key);
-    updateModelPill(key, modelsData);
-    closeModelDropdown();
-  } catch(e) {}
-}
-
-function toggleModelDropdown() {
-  document.getElementById('model-dropdown').classList.toggle('open');
-}
-function closeModelDropdown() {
-  document.getElementById('model-dropdown').classList.remove('open');
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', e => {
-  const wrap = document.getElementById('model-selector-wrap');
-  if (wrap && !wrap.contains(e.target)) closeModelDropdown();
-});
-
-loadModels();
-*/
