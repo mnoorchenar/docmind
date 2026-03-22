@@ -1,7 +1,7 @@
 from agents.llm_factory import call_llm
 
 _TEMPLATE = """You are a research planning agent. Given the user's question, produce a brief research plan.
-Decide: should the answer be grounded in uploaded documents, web search, or both?
+Describe which aspects of the uploaded document are most relevant to answer the question.
 Output your plan in 2-3 concise sentences. Start with "PLAN:".
 
 Question: {question}

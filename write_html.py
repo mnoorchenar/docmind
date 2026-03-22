@@ -1,3 +1,6 @@
+import pathlib
+
+HTML = '''\
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -519,3 +522,7 @@ function showMsg(id,type,msg){
 </script>
 </body>
 </html>
+'''
+
+pathlib.Path('E:/HuggingFace/docmind/templates/index.html').write_text(HTML, encoding='utf-8')
+print('Done, size:', len(HTML))
