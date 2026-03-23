@@ -1,13 +1,37 @@
-from agents.llm_factory import call_llm
+"""
+Planner agent — LangChain LCEL chain.
 
-_TEMPLATE = """You are a research planning agent. Given the user's question, produce a brief research plan.
-Describe which aspects of the uploaded document are most relevant to answer the question.
-Output your plan in 2-3 concise sentences. Start with "PLAN:".
+Decomposes the user question into a brief research plan that guides
+downstream retrieval and generation steps.
 
-Question: {question}
+Chain:  ChatPromptTemplate | ChatOpenAI (Qwen 2.5-7B) | StrOutputParser
+"""
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-Plan:"""
+from agents.llm_factory import get_llm
+
+_SYSTEM = (
+    "You are a research planning agent. Given the user's question, produce a "
+    "brief research plan describing which aspects of the uploaded document are "
+    "most relevant to answer it. Output 2–3 concise sentences. Start with 'PLAN:'."
+)
+
+_prompt = ChatPromptTemplate.from_messages([
+    ("system", _SYSTEM),
+    ("human", "{question}"),
+])
+
+# Lazy-initialised so HF_TOKEN is not required at import time
+_chain = None
+
+
+def _get_chain():
+    global _chain
+    if _chain is None:
+        _chain = _prompt | get_llm(temperature=0.3, max_tokens=200) | StrOutputParser()
+    return _chain
+
 
 def run_planner(question: str) -> str:
-    prompt = _TEMPLATE.format(question=question)
-    return call_llm(prompt, max_new_tokens=200, temperature=0.3)
+    return _get_chain().invoke({"question": question})

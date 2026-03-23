@@ -1,14 +1,35 @@
+"""
+Embedding layer — LangChain HuggingFaceEmbeddings.
+
+Wraps BAAI/bge-small-en-v1.5 as a LangChain-native embeddings object so it
+can be swapped for any other LangChain-compatible embeddings (OpenAI,
+Cohere, etc.) in one line.
+
+The model is lazy-loaded on first call and cached as a module-level singleton
+(SentenceTransformer load costs ~1–2 s; subsequent calls are instant).
+"""
+import os
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEmbeddings
 
-_model = None   # lazy-loaded singleton
+# Suppress tokenizer parallelism warning in multi-threaded Flask context
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-def get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-    return _model
+_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+_embeddings: HuggingFaceEmbeddings | None = None
+
+
+def _get_embeddings() -> HuggingFaceEmbeddings:
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = HuggingFaceEmbeddings(
+            model_name=_MODEL_NAME,
+            encode_kwargs={"normalize_embeddings": True},
+        )
+    return _embeddings
+
 
 def embed(texts: list) -> np.ndarray:
-    """Returns float32 numpy array of shape (N, dim)."""
-    return get_model().encode(texts, normalize_embeddings=True, show_progress_bar=False).astype("float32")
+    """Embed a list of texts. Returns a float32 ndarray of shape (N, dim)."""
+    vecs = _get_embeddings().embed_documents(texts)
+    return np.array(vecs, dtype="float32")

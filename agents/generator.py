@@ -1,20 +1,45 @@
-from agents.llm_factory import call_llm
+"""
+Generator agent — LangChain LCEL chain.
 
-_TEMPLATE = """You are an expert research analyst. Answer the question using ONLY the context below.
-Cite sources as [Source: filename, p.N] inline. If the context lacks enough information, say so clearly.
+Synthesises a cited answer from the top-graded context chunks passed in by
+the LangGraph orchestrator. Sources are formatted as [Source: name, p.N].
 
-Context:
-{context}
+Chain:  ChatPromptTemplate | ChatOpenAI (Qwen 2.5-7B) | StrOutputParser
+"""
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-Question: {question}
+from agents.llm_factory import get_llm
 
-Answer:"""
+_SYSTEM = (
+    "You are an expert research analyst. Answer the question using ONLY the "
+    "context provided below. Cite sources inline as [Source: filename, p.N]. "
+    "If the context lacks sufficient information, state that clearly."
+)
 
-def run_generator(question: str, documents: list) -> str:
-    context_parts = [
-        f"[Source: {d.get('source','unknown')}, p.{d.get('page','?')}]\n{d['page_content']}"
+_prompt = ChatPromptTemplate.from_messages([
+    ("system", _SYSTEM),
+    ("human", "Context:\n{context}\n\nQuestion: {question}"),
+])
+
+_chain = None
+
+
+def _get_chain():
+    global _chain
+    if _chain is None:
+        _chain = _prompt | get_llm(temperature=0.4, max_tokens=512) | StrOutputParser()
+    return _chain
+
+
+def _format_context(documents: list) -> str:
+    parts = [
+        f"[Source: {d.get('source', 'unknown')}, p.{d.get('page', '?')}]\n{d['page_content']}"
         for d in documents
     ]
-    context = "\n\n".join(context_parts) if context_parts else "No context available."
-    prompt  = _TEMPLATE.format(question=question, context=context)
-    return call_llm(prompt, max_new_tokens=512, temperature=0.4)
+    return "\n\n".join(parts) if parts else "No context available."
+
+
+def run_generator(question: str, documents: list) -> str:
+    context = _format_context(documents)
+    return _get_chain().invoke({"context": context, "question": question})

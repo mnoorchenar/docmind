@@ -8,7 +8,7 @@ sdk: docker
 <div align="center">
 
 <h1>🧠 DocMind — Agentic Research Platform</h1>
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=4f8ef7&center=true&vCenter=true&width=700&lines=LangGraph+%C2%B7+5+Agents+%C2%B7+Corrective+RAG;Multi-Agent+Orchestration+%C2%B7+Human-in-the-Loop;Deployed+Free+on+HuggingFace+Spaces" alt="Typing SVG"/>
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=4f8ef7&center=true&vCenter=true&width=700&lines=LangGraph+%C2%B7+5+Agents+%C2%B7+Hybrid+RAG;Qwen+2.5-7B+%C2%B7+3+LLM+Calls+per+Query;Deployed+Free+on+HuggingFace+Spaces" alt="Typing SVG"/>
 
 <br/>
 
@@ -22,7 +22,7 @@ sdk: docker
 
 <br/>
 
-**🧠 DocMind** — A production-grade agentic document research platform. Five specialized LangGraph agents plan, retrieve, grade, generate, and critique answers from uploaded PDFs using Corrective RAG, hybrid search, human-in-the-loop review, and LangSmith-style observability — all running free on HuggingFace Spaces.
+**🧠 DocMind** — A clean, minimal agentic document research platform. Five specialized LangGraph agents plan, retrieve, grade, generate, and critique answers from uploaded PDFs and web pages using hybrid search and Qwen 2.5-7B — all running free on HuggingFace Spaces.
 
 <br/>
 
@@ -48,13 +48,12 @@ sdk: docker
 ## ✨ Features
 
 <table>
-  <tr><td>🧠 <b>LangGraph State Machine</b></td><td>Five agents wired into a cyclic StateGraph with conditional edges and Corrective RAG rewrite loops.</td></tr>
+  <tr><td>🧠 <b>LangGraph State Machine</b></td><td>Five agents wired into a linear StateGraph — Planner → Retriever → Grader → Generator → Critic.</td></tr>
   <tr><td>🔍 <b>Hybrid RAG (FAISS + BM25)</b></td><td>Semantic vector search combined with BM25 keyword search, fused via Reciprocal Rank Fusion for precision retrieval.</td></tr>
-  <tr><td>🤖 <b>Multi-Agent Orchestration</b></td><td>Planner, Retriever, Grader, Generator, and Critic agents each with specialized roles and distinct LLM temperature settings.</td></tr>
-  <tr><td>👁️ <b>Human-in-the-Loop</b></td><td>Answers failing the Critic agent's quality threshold are routed to a human review queue before delivery.</td></tr>
-  <tr><td>📊 <b>Observability Dashboard</b></td><td>Per-agent call counts, average latency, and Chart.js visualizations — LangSmith-style tracing without the paid tier.</td></tr>
-  <tr><td>🔧 <b>Tool Use / Function Calling</b></td><td>Three real tools: DuckDuckGo web search, safe AST calculator, and sandboxed Python code execution.</td></tr>
-  <tr><td>🔒 <b>Secure by Design</b></td><td>Stateless REST backend, no user data persisted, sandboxed code tool with restricted builtins only.</td></tr>
+  <tr><td>🤖 <b>Multi-Agent Orchestration</b></td><td>Planner, Retriever, Grader, Generator, and Critic agents each with specialized roles — only 3 LLM calls per query.</td></tr>
+  <tr><td>⚡ <b>Score-Based Grading</b></td><td>Grader uses hybrid search scores + keyword overlap — no LLM call needed, instant and deterministic relevance scoring.</td></tr>
+  <tr><td>📄 <b>PDF &amp; URL Ingestion</b></td><td>Upload PDF files up to 10 MB or paste any public URL — both are chunked, embedded, and indexed automatically.</td></tr>
+  <tr><td>🔒 <b>Secure by Design</b></td><td>Stateless REST backend, no user data persisted, HF token kept server-side only.</td></tr>
   <tr><td>🐳 <b>Containerized Deployment</b></td><td>Docker-first with Gunicorn, embedding model pre-downloaded at build time for fast cold starts.</td></tr>
 </table>
 
@@ -66,19 +65,19 @@ sdk: docker
 ┌──────────────────────────────────────────────────────────────┐
 │                   DocMind — LangGraph Flow                    │
 │                                                              │
-│  PDF Upload ──▶ Ingestor ──▶ FAISS+BM25 Hybrid Vector Store │
+│  PDF / URL ──▶ Ingestor ──▶ FAISS+BM25 Hybrid Vector Store  │
 │                                    │                         │
-│  User Query ──▶ [PLANNER Agent]    │                         │
+│  User Query ──▶ [PLANNER Agent]    │   (Qwen 2.5-7B, 0.3)   │
 │                      │             │                         │
-│                 [RETRIEVER] ◀──────┘  (hybrid search)        │
+│                 [RETRIEVER] ◀──────┘  (FAISS+BM25+RRF)      │
 │                      │                                       │
-│                 [GRADER] ──▶ low score? ──▶ [REWRITER] ──┐  │
-│                      │                                   │  │
-│                      └──▶ [GENERATOR] ◀──────────────────┘  │
-│                                │                             │
-│                           [CRITIC] ──▶ flag? ──▶ [REVIEW]   │
-│                                │                             │
-│                            [OUTPUT]  Flask API + SPA UI      │
+│                 [GRADER]  (score-based, no LLM call)         │
+│                      │                                       │
+│                 [GENERATOR]         (Qwen 2.5-7B, 0.4)       │
+│                      │                                       │
+│                  [CRITIC]           (Qwen 2.5-7B, 0.1)       │
+│                      │                                       │
+│                  [OUTPUT]  Flask API + Single-Page UI         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,30 +123,35 @@ docker run -p 7860:7860 -e HF_TOKEN=hf_your_token_here docmind
 
 ---
 
-## 📊 Dashboard Modules
+## 📊 App Modules
 
 | Module | Description | Status |
 |--------|-------------|--------|
-| 📤 Upload & Index | PDF ingest, chunk, embed (local), FAISS+BM25 index | ✅ Live |
-| 🔍 Research Query | LangGraph 5-agent pipeline with real-time trace | ✅ Live |
-| 👁️ Human Review | Critic escalation queue with approve/reject | ✅ Live |
-| 📊 Observability | Per-agent latency, call counts, Chart.js dashboard | ✅ Live |
-| 🔧 Tool Playground | Web search, calculator, code runner | ✅ Live |
+| 📤 Upload & Index | PDF / URL ingest, chunk, embed (local BAAI model), FAISS+BM25 index | ✅ Live |
+| 🔍 Research Query | LangGraph 5-agent pipeline with real-time trace log | ✅ Live |
 
 ---
 
 ## 🧠 ML Models
 
 ```python
-models = {
-    "planner_generator": "mistralai/Mistral-7B-Instruct-v0.3",
-    "grader_critic":     "HuggingFaceH4/zephyr-7b-beta",
-    "embeddings":        "BAAI/bge-small-en-v1.5",
-    "vector_index":      "FAISS (faiss-cpu, local)",
-    "keyword_index":     "BM25 (rank-bm25, local)",
-    "fusion_strategy":   "Reciprocal Rank Fusion (RRF k=60)",
-    "graph_framework":   "LangGraph 0.2 StateGraph",
-    "chain_syntax":      "LangChain LCEL (prompt | llm)",
+stack = {
+    # ── LLM (LangChain LCEL chains) ──────────────────────────────────────────
+    "llm":             "Qwen/Qwen2.5-7B-Instruct",         # via HF Router
+    "lcel_chain":      "ChatPromptTemplate | ChatOpenAI | StrOutputParser",
+    "retry":           "ChatOpenAI.with_retry(stop_after_attempt=2)",
+
+    # ── RAG (LangChain + custom hybrid) ──────────────────────────────────────
+    "splitter":        "RecursiveCharacterTextSplitter (langchain-text-splitters)",
+    "documents":       "langchain_core.documents.Document",
+    "embeddings":      "HuggingFaceEmbeddings (BAAI/bge-small-en-v1.5, local)",
+    "vector_index":    "FAISS IndexFlatIP (cosine)",
+    "keyword_index":   "BM25Okapi (rank-bm25)",
+    "fusion":          "Reciprocal Rank Fusion (RRF k=60)",
+    "grader":          "score-based (hybrid score × 0.7 + keyword overlap × 0.3)",
+
+    # ── Orchestration (LangGraph) ─────────────────────────────────────────────
+    "graph":           "LangGraph 0.2 StateGraph — 5 nodes, linear pipeline",
 }
 ```
 
@@ -157,30 +161,27 @@ models = {
 
 ```
 docmind/
-├── 📄 app.py                     # Flask entry point, 10 REST routes
+├── 📄 app.py                     # Flask entry point, 5 REST routes
 ├── 📄 requirements.txt
 ├── 📄 Dockerfile                 # Port 7860, embedding model pre-downloaded
 ├── 📄 .env.example
 ├── 📂 agents/
-│   ├── 📄 planner.py             # Mistral-7B — task decomposition
+│   ├── 📄 llm_factory.py         # get_llm() → LangChain ChatOpenAI (HF Router)
+│   ├── 📄 planner.py             # LCEL: ChatPromptTemplate | ChatOpenAI | StrOutputParser
 │   ├── 📄 retriever.py           # Hybrid FAISS+BM25 search wrapper
-│   ├── 📄 grader.py              # Zephyr-7B — 0.0–1.0 relevance scoring
-│   ├── 📄 generator.py           # Mistral-7B — cited answer generation
-│   └── 📄 critic.py              # Zephyr-7B — hallucination detection
+│   ├── 📄 grader.py              # Score-based relevance grading (no LLM call)
+│   ├── 📄 generator.py           # LCEL chain — cited answer generation
+│   └── 📄 critic.py              # LCEL chain — hallucination detection
 ├── 📂 graph/
-│   └── 📄 research_graph.py      # LangGraph StateGraph (5 nodes + conditional edges)
+│   └── 📄 research_graph.py      # LangGraph StateGraph (5 nodes, linear pipeline)
 ├── 📂 rag/
-│   ├── 📄 ingestor.py            # PyPDF + overlapping chunker
-│   ├── 📄 vector_store.py        # FAISS + BM25 + RRF fusion
-│   └── 📄 embeddings.py          # sentence-transformers local wrapper
-├── 📂 tools/
-│   ├── 📄 web_search.py          # DuckDuckGo free search
-│   ├── 📄 calculator.py          # AST-safe math evaluator
-│   └── 📄 code_tool.py           # Sandboxed Python exec
+│   ├── 📄 ingestor.py            # RecursiveCharacterTextSplitter + Document objects
+│   ├── 📄 vector_store.py        # FAISS + BM25 + RRF, accepts Document or dict
+│   └── 📄 embeddings.py          # LangChain HuggingFaceEmbeddings (bge-small-en-v1.5)
 ├── 📂 tracing/
 │   └── 📄 tracer.py              # Thread-safe in-memory trace store
 ├── 📂 templates/
-│   └── 📄 index.html             # Dark-mode 5-page SPA
+│   └── 📄 index.html             # Dark-mode single-page UI
 └── 📂 docs/
     └── 📄 project-template.html  # Portfolio showcase page
 ```
