@@ -1,14 +1,10 @@
 """
 Generator agent — LangChain LCEL chain.
 
-Synthesises a cited answer from the top-graded context chunks passed in by
-the LangGraph orchestrator. Sources are formatted as [Source: name, p.N].
-
-Chain:  ChatPromptTemplate | ChatOpenAI (Qwen 2.5-7B) | StrOutputParser
+Chain:  ChatPromptTemplate | ChatOpenAI (current model, temp 0.4) | StrOutputParser
 """
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-
 from agents.llm_factory import get_llm
 
 _SYSTEM = (
@@ -22,15 +18,6 @@ _prompt = ChatPromptTemplate.from_messages([
     ("human", "Context:\n{context}\n\nQuestion: {question}"),
 ])
 
-_chain = None
-
-
-def _get_chain():
-    global _chain
-    if _chain is None:
-        _chain = _prompt | get_llm(temperature=0.4, max_tokens=512) | StrOutputParser()
-    return _chain
-
 
 def _format_context(documents: list) -> str:
     parts = [
@@ -41,5 +28,6 @@ def _format_context(documents: list) -> str:
 
 
 def run_generator(question: str, documents: list) -> str:
+    chain   = _prompt | get_llm(temperature=0.4, max_tokens=512) | StrOutputParser()
     context = _format_context(documents)
-    return _get_chain().invoke({"context": context, "question": question})
+    return chain.invoke({"context": context, "question": question})

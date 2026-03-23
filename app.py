@@ -9,6 +9,7 @@ from rag.vector_store     import HybridVectorStore
 from rag.ingestor         import PDFIngestor, URLIngestor, MAX_PDF_BYTES
 from graph.research_graph import ResearchGraph
 from tracing.tracer       import Tracer
+from agents.llm_factory   import AVAILABLE_MODELS, set_model, get_current_model
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
@@ -19,16 +20,18 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 vector_store = HybridVectorStore()
 tracer       = Tracer()
 graph        = ResearchGraph(vector_store, tracer)
-queries      = {}
+queries: dict = {}
 
 
-def _clear_uploads():
+def _clear_uploads() -> None:
     for f in os.listdir(UPLOAD_FOLDER):
         try:
             os.remove(os.path.join(UPLOAD_FOLDER, f))
         except Exception:
             pass
 
+
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -42,8 +45,31 @@ def health():
         "docs_indexed":  vector_store.doc_count,
         "chunks_stored": vector_store.chunk_count,
         "source":        vector_store.source_label,
+        "model":         get_current_model()["label"],
         "token_set":     bool(os.getenv("HF_TOKEN")),
     })
+
+
+@app.route("/api/models")
+def api_models():
+    """Return available models and the currently selected one."""
+    current = get_current_model()
+    return jsonify({
+        "models":  AVAILABLE_MODELS,
+        "current": current["key"],
+    })
+
+
+@app.route("/api/set_model", methods=["POST"])
+def api_set_model():
+    """Switch the active LLM model server-side."""
+    data = request.json or {}
+    key  = (data.get("model") or "").strip()
+    if key not in AVAILABLE_MODELS:
+        return jsonify({"error": f"Unknown model key '{key}'."}), 400
+    set_model(key)
+    m = get_current_model()
+    return jsonify({"success": True, "model": key, "label": m["label"]})
 
 
 @app.route("/api/upload", methods=["POST"])
@@ -90,11 +116,16 @@ def ingest_url():
 def research():
     data     = request.json or {}
     question = (data.get("question") or "").strip()
+    model    = (data.get("model") or "").strip()
+
     if not question:
         return jsonify({"error": "Question is required."}), 400
     if vector_store.doc_count == 0:
         return jsonify({"error": "No source loaded — please upload a PDF or fetch a URL first."}), 400
-    qid = str(uuid.uuid4())
+    if model and model in AVAILABLE_MODELS:
+        set_model(model)
+
+    qid          = str(uuid.uuid4())
     queries[qid] = {"status": "running", "result": None}
 
     def _run():
