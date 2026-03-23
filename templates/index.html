@@ -393,7 +393,7 @@ async function fetchURL(){
 function setSource(name,chunks,type){
   document.getElementById("source-name").textContent=name;
   document.getElementById("source-chunks").textContent=chunks+" chunks indexed";
-  document.getElementById("sc-icon").textContent=type==="pdf"?"&#128196;":"&#127760;";
+  document.getElementById("sc-icon").textContent=type==="pdf"?"📄":"🌐";
   document.getElementById("source-card").style.display="block";
   const p=document.getElementById("hdr-src");
   p.textContent=name.length>30?name.slice(0,30)+"...":name;
