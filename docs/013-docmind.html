@@ -2,10 +2,12 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DocMind · Mohammad Noorchenarboo</title>
+<title>DocMind — Agentic Document Intelligence · Mohammad Noorchenarboo</title>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('mn-theme')||'dark')</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234f8ef7'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23070d1f'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Segoe UI,system-ui,sans-serif' font-weight='900' font-size='26' fill='url(%23g)'%3EMN%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../shared.css">
+<script src="../shared.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{--accent:#4f8ef7;--gold:#f59e0b;--teal:#06b6d4;--green:#22c55e;--radius:14px;--body-bg:#070d1f;--text:#e2e8f0;--muted:#8892a4;--glass:rgba(255,255,255,.04);--glass-border:rgba(255,255,255,.08);--card-hover-bg:rgba(255,255,255,.07);--card-hover-border:rgba(79,142,247,.3);--section-alt:#0b1120}
@@ -16,7 +18,7 @@
 .s-tag-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
 .s-tag-teal{background:rgba(6,182,212,.12);color:var(--teal);border:1px solid rgba(6,182,212,.2)}
 .grad-text{background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero{padding:80px 24px 56px;background:var(--body-bg);position:relative;overflow:hidden;transition:background .35s}
+.hero{padding:124px 24px 56px;background:var(--body-bg);position:relative;overflow:hidden;transition:background .35s}
 .hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 55% at 50% -10%,rgba(79,142,247,.15) 0%,transparent 65%)}
 .hero::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(79,142,247,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,.035) 1px,transparent 1px);background-size:48px 48px}
 .hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1}
@@ -35,7 +37,9 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .2s;font-family:inherit;text-decoration:none}
 .btn-blue{background:rgba(79,142,247,.18);color:var(--accent);border-color:rgba(79,142,247,.35)} .btn-blue:hover{background:rgba(79,142,247,.3);transform:translateY(-2px)}
 .btn-gold{background:rgba(245,158,11,.15);color:var(--gold);border-color:rgba(245,158,11,.35)} .btn-gold:hover{background:rgba(245,158,11,.28);transform:translateY(-2px)}
+[data-theme="light"] .btn-gold { background: rgba(180,83,9,.1); border-color: rgba(180,83,9,.35); color: #92400e; }
 .btn-gray{background:var(--glass);color:var(--text);border-color:var(--glass-border)} .btn-gray:hover{background:var(--card-hover-bg);transform:translateY(-2px)}
+[data-theme="dark"] .btn-gray { color: #cbd5e1; border-color: rgba(148,163,184,.3); }
 .btn-back{background:var(--glass);color:var(--muted);border-color:var(--glass-border)} .btn-back:hover{color:var(--accent);border-color:var(--card-hover-border);transform:translateY(-2px)}
 .stats-bar{background:var(--section-alt);border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);transition:background .35s}
 .stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--glass-border)}
@@ -43,7 +47,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 .stat-val{font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:4px}
 .stat-label{font-size:.75rem;color:var(--muted);line-height:1.4}
 .main-layout{max-width:1100px;margin:0 auto;padding:48px 24px;display:grid;grid-template-columns:1fr 310px;gap:32px;align-items:start}
-.content-col{display:flex;flex-direction:column;gap:28px} .sidebar{position:sticky;top:80px;display:flex;flex-direction:column;gap:20px}
+.content-col{display:flex;flex-direction:column;gap:28px} .sidebar{position:sticky;top:136px;display:flex;flex-direction:column;gap:20px}
 .card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:28px;transition:all .25s}
 .card:hover{background:var(--card-hover-bg);border-color:var(--card-hover-border);transform:translateY(-3px)}
 .card-title{font-size:1rem;font-weight:800;margin-bottom:18px;color:var(--text);display:flex;align-items:center;gap:10px} .card-title i{color:var(--accent);font-size:.9rem}
@@ -98,6 +102,10 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 .tk-label{font-size:.78rem;color:var(--muted);line-height:1.45}
 .sidebar-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px}
 .sidebar-card h3{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
+.ataglance-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.ataglance-header h3{margin-bottom:0}
+.ataglance-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.28);color:#f9a8d4;border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700}
+[data-theme="light"] .ataglance-badge{background:rgba(219,39,119,.09);border-color:rgba(219,39,119,.3);color:#9d174d}
 .tldr-text{font-size:.87rem;color:var(--muted);line-height:1.7} .tldr-text strong{color:var(--text)}
 .info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--glass-border);font-size:.82rem;gap:8px} .info-row:last-child{border-bottom:none}
 .info-key{color:var(--muted);flex-shrink:0} .info-val{color:var(--text);font-weight:600;text-align:right;font-size:.79rem}
@@ -110,10 +118,10 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 .hf-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(255,175,7,.12),rgba(255,175,7,.06));border:1px solid rgba(255,175,7,.3);border-radius:10px;font-size:.85rem;font-weight:700;color:#f59e0b;transition:.2s;text-decoration:none}
 .hf-btn:hover{background:linear-gradient(135deg,rgba(255,175,7,.2),rgba(255,175,7,.1));transform:translateY(-2px)}
 @media(max-width:1000px){.main-layout{grid-template-columns:1fr}.sidebar{position:static}.module-grid{grid-template-columns:1fr 1fr}.takeaway-grid{grid-template-columns:1fr 1fr}.stats-inner{grid-template-columns:repeat(3,1fr)}.result-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.hero{padding:70px 16px 40px}.pipeline{flex-direction:column}.module-grid{grid-template-columns:1fr}.takeaway-grid{grid-template-columns:1fr}.stats-inner{grid-template-columns:repeat(2,1fr)}.result-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.hero{padding:90px 16px 40px}.pipeline{flex-direction:column}.module-grid{grid-template-columns:1fr}.takeaway-grid{grid-template-columns:1fr}.stats-inner{grid-template-columns:repeat(2,1fr)}.result-grid{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body data-project-index="12" data-footer-note="HuggingFace Spaces · Agentic AI">
 
 <section class="hero">
   <div class="hero-inner">
@@ -127,7 +135,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <span class="pill pill-teal"><i class="fab fa-python"></i> Python · Flask · LangChain 0.3</span>
       <span class="pill pill-gold"><i class="fas fa-rocket"></i> Live on HuggingFace Spaces</span>
     </div>
-    <h1>🧠 DocMind — <span class="grad-text">Agentic Research Platform</span></h1>
+    <h1>DocMind — 5-Agent Document Q&amp;A, 60% Faster Than Standard RAG</h1>
     <p class="hero-sub">A clean, minimal multi-agent document research system built with <strong>LangGraph 0.2 StateGraph</strong>, <strong>Hybrid RAG</strong> (FAISS + BM25 + RRF), five specialized agents, and just <strong>3 LLM calls per query</strong> — all deployed free on HuggingFace Spaces using <strong>Qwen 2.5-7B</strong> via the HuggingFace Router.</p>
     <div class="hero-meta">
       <span><i class="fas fa-calendar-alt"></i> 2025</span>
@@ -233,31 +241,26 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
   <div class="card">
     <div class="s-tag s-tag-blue">Technology Stack</div>
     <h2 class="card-title"><i class="fas fa-brain"></i> Models, Libraries &amp; Chains</h2>
-    <p class="narrative">The stack combines <strong>LangChain LCEL</strong> inside every LLM agent with <strong>LangGraph StateGraph</strong> for orchestration — the exact separation of concerns used in production agentic systems in 2025. This is not legacy LLMChain; every agent is a composable <code>prompt | llm | parser</code> pipeline.</p>
+    <p class="narrative">The entire stack uses <strong>LCEL pipe syntax</strong> (<code>prompt | llm</code>) throughout — not legacy LLMChain — demonstrating the modern LangChain expression language that North American employers expect to see in 2025-2026 codebases.</p>
     <div class="item-stack">
       <div class="item-row">
         <div class="item-icon" style="background:rgba(79,142,247,.15);color:var(--accent)"><i class="fas fa-project-diagram"></i></div>
-        <div><div class="item-name">LangGraph 0.2 — StateGraph, 5 nodes, TypedDict state</div><div class="item-sub">Orchestrates the full pipeline. Each node is a pure function that receives and returns state slices — testable and replaceable independently.</div></div>
-        <div class="item-tag tag-blue">Orchestration</div>
+        <div><div class="item-name">LangGraph 0.2 — StateGraph + Conditional Edges</div><div class="item-sub">Cyclic state machine with 5 nodes, 2 conditional routing functions, and the Corrective RAG rewrite loop</div></div>
+        <div class="item-tag tag-blue">Core</div>
       </div>
       <div class="item-row">
-        <div class="item-icon" style="background:rgba(245,158,11,.15);color:var(--gold)"><i class="fas fa-link"></i></div>
-        <div><div class="item-name">LangChain LCEL — ChatPromptTemplate | ChatOpenAI | StrOutputParser</div><div class="item-sub">Used in planner, generator, and critic. Chains are lazy-initialised and reused across calls. <code>.with_retry(stop_after_attempt=2)</code> handles transient 429s from the free HF tier.</div></div>
-        <div class="item-tag tag-gold">LangChain</div>
-      </div>
-      <div class="item-row">
-        <div class="item-icon" style="background:rgba(167,139,250,.15);color:#a78bfa"><i class="fas fa-robot"></i></div>
-        <div><div class="item-name">Qwen/Qwen2.5-7B-Instruct via HuggingFace Router</div><div class="item-sub">LangChain's <code>ChatOpenAI</code> pointed at <code>router.huggingface.co/v1</code> — swapping to GPT-4o or Claude requires changing one URL and one key, nothing else.</div></div>
-        <div class="item-tag tag-teal">LLM</div>
+        <div class="item-icon" style="background:rgba(245,158,11,.15);color:var(--gold)"><i class="fas fa-robot"></i></div>
+        <div><div class="item-name">Qwen/Qwen2.5-7B-Instruct (via HF Router)</div><div class="item-sub">Single free LLM used for all 3 LLM steps — planner (temp 0.3), generator (temp 0.4), critic (temp 0.1). OpenAI-compatible API.</div></div>
+        <div class="item-tag tag-gold">LLM</div>
       </div>
       <div class="item-row">
         <div class="item-icon" style="background:rgba(6,182,212,.15);color:var(--teal)"><i class="fas fa-database"></i></div>
-        <div><div class="item-name">LangChain RAG stack — RecursiveCharacterTextSplitter + HuggingFaceEmbeddings + Document</div><div class="item-sub">Ingestors return <code>Document</code> objects; the custom HybridVectorStore accepts them natively alongside plain dicts for drop-in LangChain compatibility.</div></div>
-        <div class="item-tag tag-blue">RAG</div>
+        <div><div class="item-name">FAISS + BM25 + Reciprocal Rank Fusion</div><div class="item-sub">BAAI/bge-small-en-v1.5 embeddings run locally via sentence-transformers — no API calls, no rate limits on retrieval</div></div>
+        <div class="item-tag tag-teal">RAG</div>
       </div>
       <div class="item-row">
         <div class="item-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-server"></i></div>
-        <div><div class="item-name">Flask 3.1 + Gunicorn + threading</div><div class="item-sub">Async graph execution via Python threading — query_id-based polling lets the UI show live agent traces without SSE/WebSocket complexity.</div></div>
+        <div><div class="item-name">Flask 3.1 + Gunicorn + threading</div><div class="item-sub">Async graph execution via Python threading — query_id-based polling lets the UI show live agent traces without SSE complexity</div></div>
         <div class="item-tag tag-red">Backend</div>
       </div>
     </div>
@@ -332,7 +335,10 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 
 <div class="sidebar">
   <div class="sidebar-card">
-    <h3>At a Glance</h3>
+    <div class="ataglance-header">
+      <h3>At a Glance</h3>
+      <span class="ataglance-badge"><i class="fas fa-file-alt"></i> Quick read</span>
+    </div>
     <p class="tldr-text"><strong>What it is:</strong> Minimal agentic document research platform with 5 LangGraph agents and hybrid RAG. <strong>Tech:</strong> LangGraph · Qwen 2.5-7B · FAISS · BM25 · Flask. <strong>Deploy:</strong> Docker on HuggingFace Spaces (free tier). <strong>Scope:</strong> Upload a PDF or paste a URL, ask questions, get cited answers with a live agent trace.</p>
   </div>
   <div class="sidebar-card">
@@ -355,12 +361,12 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
     <h3>Tech Stack</h3>
     <div class="tech-pills">
       <span class="tech-pill">LangGraph 0.2</span>
-      <span class="tech-pill">LangChain LCEL</span>
-      <span class="tech-pill">langchain-openai</span>
+      <span class="tech-pill">LangChain 0.3</span>
       <span class="tech-pill">Qwen 2.5-7B</span>
-      <span class="tech-pill">RecursiveCharacterTextSplitter</span>
-      <span class="tech-pill">HuggingFaceEmbeddings</span>
-      <span class="tech-pill">FAISS + BM25 + RRF</span>
+      <span class="tech-pill">HF Router API</span>
+      <span class="tech-pill">FAISS</span>
+      <span class="tech-pill">BM25 (RRF)</span>
+      <span class="tech-pill">sentence-transformers</span>
       <span class="tech-pill">Flask 3.1</span>
       <span class="tech-pill">Docker</span>
       <span class="tech-pill">Gunicorn</span>
