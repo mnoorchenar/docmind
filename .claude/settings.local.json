@@ -3,7 +3,8 @@
     "allow": [
       "Bash(wc -l /e/HuggingFace/docmind/*.py /e/HuggingFace/docmind/**/*.py)",
       "Bash(python3:*)",
-      "Bash(python write_html.py)"
+      "Bash(python write_html.py)",
+      "Bash(grep:*)"
     ]
   }
 }

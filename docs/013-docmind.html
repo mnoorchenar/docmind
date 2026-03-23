@@ -131,17 +131,17 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <span style="color:var(--text)">DocMind</span>
     </div>
     <div class="tag-row">
-      <span class="pill pill-blue"><i class="fas fa-brain"></i> Agentic AI / LangGraph</span>
-      <span class="pill pill-teal"><i class="fab fa-python"></i> Python · Flask · LangChain 0.3</span>
+      <span class="pill pill-blue"><i class="fas fa-brain"></i> Agentic AI / LangGraph + LangChain LCEL</span>
+      <span class="pill pill-teal"><i class="fab fa-python"></i> Python · Flask · 3 Selectable LLMs</span>
       <span class="pill pill-gold"><i class="fas fa-rocket"></i> Live on HuggingFace Spaces</span>
     </div>
     <h1>DocMind — 5-Agent Document Q&amp;A, 60% Faster Than Standard RAG</h1>
-    <p class="hero-sub">A clean, minimal multi-agent document research system built with <strong>LangGraph 0.2 StateGraph</strong>, <strong>Hybrid RAG</strong> (FAISS + BM25 + RRF), five specialized agents, and just <strong>3 LLM calls per query</strong> — all deployed free on HuggingFace Spaces using <strong>Qwen 2.5-7B</strong> via the HuggingFace Router.</p>
+    <p class="hero-sub">A clean, multi-agent document research system built with <strong>LangGraph 0.2 StateGraph</strong> for orchestration, <strong>LangChain LCEL</strong> chains in every LLM agent, <strong>Hybrid RAG</strong> (FAISS + BM25 + RRF), and just <strong>3 LLM calls per query</strong>. Features a <strong>live animated pipeline</strong> with light/dark theme, a <strong>3-model picker</strong> (Qwen 2.5-7B / Mistral Nemo 12B / Phi-3.5 Mini), and free deployment on HuggingFace Spaces.</p>
     <div class="hero-meta">
       <span><i class="fas fa-calendar-alt"></i> 2025</span>
       <span><i class="fas fa-user"></i> <strong>Mohammad Noorchenarboo</strong></span>
-      <span><i class="fas fa-robot"></i> 5 LangGraph Agents · 3 LLM Calls</span>
-      <span><i class="fas fa-database"></i> FAISS + BM25 Hybrid Index</span>
+      <span><i class="fas fa-robot"></i> 5 LangGraph Agents · 3 LLM Calls · LCEL chains</span>
+      <span><i class="fas fa-database"></i> FAISS + BM25 + RRF Hybrid Index</span>
     </div>
     <div class="hero-actions">
       <a href="#demo" class="btn btn-blue"><i class="fas fa-play-circle"></i> Explore Demo</a>
@@ -155,7 +155,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 <div class="stats-bar">
   <div class="stats-inner">
     <div class="stat-item"><div class="stat-val">5</div><div class="stat-label">Specialized LangGraph Agents</div></div>
-    <div class="stat-item"><div class="stat-val">3</div><div class="stat-label">LLM Calls per Query (Qwen 2.5-7B)</div></div>
+    <div class="stat-item"><div class="stat-val">3</div><div class="stat-label">LLM Calls per Query · 3 Selectable Models</div></div>
     <div class="stat-item"><div class="stat-val">RRF</div><div class="stat-label">Hybrid Retrieval (FAISS + BM25)</div></div>
     <div class="stat-item"><div class="stat-val">0ms</div><div class="stat-label">Grader Latency (score-based, no LLM)</div></div>
     <div class="stat-item"><div class="stat-val">Free</div><div class="stat-label">HuggingFace Inference Tier</div></div>
@@ -167,18 +167,18 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
 
   <div class="card">
     <div class="s-tag s-tag-blue">Architecture Overview</div>
-    <h2 class="card-title"><i class="fas fa-route"></i> LangGraph Cyclic State Machine</h2>
-    <p class="narrative">DocMind is built around a <strong>LangGraph StateGraph</strong> with a clean, linear 5-node pipeline. Each node is a specialized agent with a distinct role — only 3 of the 5 make LLM calls, keeping cost and latency low. The Flask backend runs the graph asynchronously via threading, and the frontend polls for trace updates every 1.5 seconds, giving a live view of every agent step.</p>
+    <h2 class="card-title"><i class="fas fa-route"></i> LangGraph Linear Pipeline + LangChain LCEL Agents</h2>
+    <p class="narrative">DocMind is built around a <strong>LangGraph StateGraph</strong> with a clean, linear 5-node pipeline — no cyclic routing, no rewrite loops. Each LLM agent is a <strong>LangChain LCEL chain</strong> (<code>ChatPromptTemplate | ChatOpenAI | StrOutputParser</code>) with <code>.with_retry(stop_after_attempt=2)</code> for transient error resilience. Only 3 of the 5 agents make LLM calls, keeping cost and latency low. The frontend shows a <strong>live animated pipeline</strong> — nodes glow and arrows flow in real time as each agent runs.</p>
     <div class="pipeline">
-      <div class="pipe-step"><div class="pipe-icon">🎯</div><div class="pipe-label">Planner</div><div class="pipe-sub">Qwen 2.5-7B · temp 0.3</div></div>
+      <div class="pipe-step"><div class="pipe-icon">🎯</div><div class="pipe-label">Planner</div><div class="pipe-sub">LCEL chain · LLM · temp 0.3</div></div>
       <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
       <div class="pipe-step"><div class="pipe-icon">🔍</div><div class="pipe-label">Retriever</div><div class="pipe-sub">FAISS + BM25 + RRF · local</div></div>
       <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">⚖️</div><div class="pipe-label">Grader</div><div class="pipe-sub">Score-based · no LLM call</div></div>
+      <div class="pipe-step"><div class="pipe-icon">⚖️</div><div class="pipe-label">Grader</div><div class="pipe-sub">Score-based · no LLM · ~1ms</div></div>
       <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">✍️</div><div class="pipe-label">Generator</div><div class="pipe-sub">Qwen 2.5-7B · temp 0.4</div></div>
+      <div class="pipe-step"><div class="pipe-icon">✍️</div><div class="pipe-label">Generator</div><div class="pipe-sub">LCEL chain · LLM · temp 0.4</div></div>
       <div class="pipe-arrow"><i class="fas fa-chevron-right"></i></div>
-      <div class="pipe-step"><div class="pipe-icon">🔬</div><div class="pipe-label">Critic</div><div class="pipe-sub">Qwen 2.5-7B · temp 0.1</div></div>
+      <div class="pipe-step"><div class="pipe-icon">🔬</div><div class="pipe-label">Critic</div><div class="pipe-sub">LCEL chain · LLM · temp 0.1</div></div>
     </div>
     <div class="insight-banner">
       <div class="insight-icon">💡</div>
@@ -196,9 +196,9 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <div class="mod-card mod-1">
         <div class="mod-badge" style="background:rgba(79,142,247,.12);color:var(--accent);border:1px solid rgba(79,142,247,.22)">🎯 Planner Agent</div>
         <div class="mod-name">Task Decomposition</div>
-        <div class="mod-desc">Receives the user question and produces a brief research plan describing which aspects of the uploaded document are most relevant to answer it. Uses Qwen 2.5-7B at temperature 0.3.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:var(--accent);font-weight:700">Qwen/Qwen2.5-7B-Instruct</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Temperature</span><span style="font-weight:700">0.3</span></div>
+        <div class="mod-desc">Receives the user question and produces a brief research plan describing which aspects of the uploaded document are most relevant to answer it. Built as a LangChain LCEL chain — model is selectable at runtime.</div>
+        <div class="mod-detail"><span class="mod-detail-key">Chain</span><span style="color:var(--accent);font-weight:700">ChatPromptTemplate | ChatOpenAI | StrOutputParser</span></div>
+        <div class="mod-detail"><span class="mod-detail-key">Temperature</span><span style="font-weight:700">0.3 · max 200 tokens</span></div>
       </div>
       <div class="mod-card mod-2">
         <div class="mod-badge" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.22)">🔍 Retriever Agent</div>
@@ -217,23 +217,23 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <div class="mod-card mod-4">
         <div class="mod-badge" style="background:rgba(6,182,212,.12);color:var(--teal);border:1px solid rgba(6,182,212,.22)">✍️ Generator Agent</div>
         <div class="mod-name">Cited Answer Generation</div>
-        <div class="mod-desc">Receives the top-graded chunks as context. Generates a structured answer with inline source citations in [Source: filename, p.N] format using only the provided context. Uses Qwen 2.5-7B at temperature 0.4.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:var(--teal);font-weight:700">Qwen/Qwen2.5-7B-Instruct</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Max tokens</span><span style="font-weight:700">512</span></div>
+        <div class="mod-desc">Receives the top-graded chunks as context. Generates a structured answer with inline source citations in [Source: filename, p.N] format using only the provided context. Model is selectable from the UI picker.</div>
+        <div class="mod-detail"><span class="mod-detail-key">Chain</span><span style="color:var(--teal);font-weight:700">ChatPromptTemplate | ChatOpenAI | StrOutputParser</span></div>
+        <div class="mod-detail"><span class="mod-detail-key">Temperature / Max tokens</span><span style="font-weight:700">0.4 · 512</span></div>
       </div>
       <div class="mod-card mod-5">
         <div class="mod-badge" style="background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.22)">🔬 Critic Agent</div>
         <div class="mod-name">Hallucination Detection</div>
-        <div class="mod-desc">Evaluates the generated answer against the source context for hallucinations and completeness. Outputs APPROVED (high confidence) or NEEDS_REVIEW (low confidence — user sees a warning badge).</div>
-        <div class="mod-detail"><span class="mod-detail-key">Model</span><span style="color:#a78bfa;font-weight:700">Qwen/Qwen2.5-7B-Instruct</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Temperature</span><span style="font-weight:700">0.1 (near-deterministic)</span></div>
+        <div class="mod-desc">Evaluates the generated answer against the source context for hallucinations and completeness. Outputs APPROVED (high confidence) or NEEDS_REVIEW (low confidence — user sees a warning badge). Model is runtime-selectable.</div>
+        <div class="mod-detail"><span class="mod-detail-key">Chain</span><span style="color:#a78bfa;font-weight:700">ChatPromptTemplate | ChatOpenAI | StrOutputParser</span></div>
+        <div class="mod-detail"><span class="mod-detail-key">Temperature / Max tokens</span><span style="font-weight:700">0.1 · 150 (near-deterministic)</span></div>
       </div>
       <div class="mod-card mod-6">
         <div class="mod-badge" style="background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.22)">📄 Ingestor</div>
         <div class="mod-name">PDF &amp; URL Ingestion</div>
-        <div class="mod-desc">Accepts PDF uploads (up to 10 MB via pypdf) or public URLs (fetched via requests + BeautifulSoup). Splits text into overlapping chunks, embeds with BAAI/bge-small-en-v1.5 locally, and builds FAISS + BM25 indexes.</div>
-        <div class="mod-detail"><span class="mod-detail-key">Embeddings</span><span style="color:var(--green);font-weight:700">bge-small-en-v1.5 (local)</span></div>
-        <div class="mod-detail"><span class="mod-detail-key">Chunk size</span><span style="font-weight:700">500 tokens, 50 overlap</span></div>
+        <div class="mod-desc">Accepts PDF uploads (up to 10 MB via pypdf) or public URLs (fetched via requests + BeautifulSoup). Uses LangChain's <code>RecursiveCharacterTextSplitter</code> for chunking and <code>HuggingFaceEmbeddings</code> (LangChain-native) for embeddings.</div>
+        <div class="mod-detail"><span class="mod-detail-key">Embeddings</span><span style="color:var(--green);font-weight:700">LangChain HuggingFaceEmbeddings · bge-small-en-v1.5</span></div>
+        <div class="mod-detail"><span class="mod-detail-key">Chunk size</span><span style="font-weight:700">1500 chars · 200 overlap</span></div>
       </div>
     </div>
   </div>
@@ -241,34 +241,34 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
   <div class="card">
     <div class="s-tag s-tag-blue">Technology Stack</div>
     <h2 class="card-title"><i class="fas fa-brain"></i> Models, Libraries &amp; Chains</h2>
-    <p class="narrative">The entire stack uses <strong>LCEL pipe syntax</strong> (<code>prompt | llm</code>) throughout — not legacy LLMChain — demonstrating the modern LangChain expression language that North American employers expect to see in 2025-2026 codebases.</p>
+    <p class="narrative">The entire stack uses <strong>LCEL pipe syntax</strong> (<code>ChatPromptTemplate | ChatOpenAI | StrOutputParser</code>) in every LLM agent — not legacy LLMChain. LangGraph handles the stateful pipeline orchestration while LangChain LCEL handles the individual agent chains, demonstrating both frameworks together the way production systems actually use them.</p>
     <div class="item-stack">
       <div class="item-row">
         <div class="item-icon" style="background:rgba(79,142,247,.15);color:var(--accent)"><i class="fas fa-project-diagram"></i></div>
-        <div><div class="item-name">LangGraph 0.2 — StateGraph + Conditional Edges</div><div class="item-sub">Cyclic state machine with 5 nodes, 2 conditional routing functions, and the Corrective RAG rewrite loop</div></div>
+        <div><div class="item-name">LangGraph 0.2 — StateGraph, linear 5-node pipeline</div><div class="item-sub">Clean sequential flow: Planner → Retriever → Grader → Generator → Critic. No cyclic routing, no rewrite loops — simple, fast, debuggable.</div></div>
         <div class="item-tag tag-blue">Core</div>
       </div>
       <div class="item-row">
         <div class="item-icon" style="background:rgba(245,158,11,.15);color:var(--gold)"><i class="fas fa-robot"></i></div>
-        <div><div class="item-name">Qwen/Qwen2.5-7B-Instruct (via HF Router)</div><div class="item-sub">Single free LLM used for all 3 LLM steps — planner (temp 0.3), generator (temp 0.4), critic (temp 0.1). OpenAI-compatible API.</div></div>
+        <div><div class="item-name">3 Selectable LLMs via HF Router (model picker UI)</div><div class="item-sub">Qwen 2.5-7B (default · fast) · Mistral Nemo 12B (stronger reasoning) · Phi-3.5 Mini 3.8B (ultra-fast). Switch without reloading — <code>set_model()</code> updates the factory globally. All via <code>langchain_openai.ChatOpenAI</code> with <code>.with_retry(stop_after_attempt=2)</code>.</div></div>
         <div class="item-tag tag-gold">LLM</div>
       </div>
       <div class="item-row">
         <div class="item-icon" style="background:rgba(6,182,212,.15);color:var(--teal)"><i class="fas fa-database"></i></div>
-        <div><div class="item-name">FAISS + BM25 + Reciprocal Rank Fusion</div><div class="item-sub">BAAI/bge-small-en-v1.5 embeddings run locally via sentence-transformers — no API calls, no rate limits on retrieval</div></div>
+        <div><div class="item-name">FAISS + BM25 + Reciprocal Rank Fusion · LangChain embeddings</div><div class="item-sub">BAAI/bge-small-en-v1.5 via <code>langchain_huggingface.HuggingFaceEmbeddings</code> — runs locally, no API calls. Chunking via LangChain <code>RecursiveCharacterTextSplitter</code> (1500 chars · 200 overlap).</div></div>
         <div class="item-tag tag-teal">RAG</div>
       </div>
       <div class="item-row">
         <div class="item-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-server"></i></div>
-        <div><div class="item-name">Flask 3.1 + Gunicorn + threading</div><div class="item-sub">Async graph execution via Python threading — query_id-based polling lets the UI show live agent traces without SSE complexity</div></div>
+        <div><div class="item-name">Flask 3.1 + Gunicorn + Python threading</div><div class="item-sub">Async graph execution via daemon threads — query_id polling every 1.5 s lets the UI drive a live animated pipeline (CSS keyframe glows + flowing arrow dots) without SSE or WebSocket complexity.</div></div>
         <div class="item-tag tag-red">Backend</div>
       </div>
     </div>
     <div class="insight-banner" style="margin-top:16px">
       <div class="insight-icon">⚙️</div>
       <div class="insight-body">
-        <h4>Why Use OpenAI SDK Against HuggingFace Router?</h4>
-        <p>The <code>openai</code> Python package is pointed at <code>router.huggingface.co/v1</code> — the HuggingFace inference router exposes an OpenAI-compatible API. This means the entire LLM layer can be swapped to any other provider (OpenAI, Groq, Ollama) by changing one URL and API key, with zero code changes elsewhere.</p>
+        <h4>langchain_openai.ChatOpenAI pointed at HuggingFace Router</h4>
+        <p><code>langchain_openai.ChatOpenAI(base_url="https://router.huggingface.co/v1")</code> uses LangChain's OpenAI integration against the HF inference router — which speaks the OpenAI chat completions protocol. The entire LLM layer can be swapped to GPT-4o, Claude, Groq, or a local Ollama model by changing one URL and one API key, with <strong>zero agent code changes</strong>.</p>
       </div>
     </div>
   </div>
@@ -305,7 +305,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
     </div>
     <div class="chart-panel" id="cp2">
       <div class="chart-wrap"><canvas id="chart2"></canvas></div>
-      <p class="chart-caption">Published benchmark scores for Qwen2.5-7B-Instruct. It outperforms Mistral-7B and Zephyr-7B on all four standard benchmarks, making it the strongest free-tier 7B model currently available on the HF Router.</p>
+      <p class="chart-caption">Published benchmark scores for the three selectable models. Mistral Nemo 12B leads on reasoning-heavy tasks; Qwen 2.5-7B is the best all-round 7B free-tier model; Phi-3.5 Mini achieves strong results at just 3.8B parameters — ideal for fast, focused queries.</p>
     </div>
   </div>
 
@@ -321,12 +321,17 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <div class="takeaway">
         <div class="tk-icon">🏠</div>
         <div class="tk-val">Local Embeddings = No Rate Limits</div>
-        <div class="tk-label">Running BAAI/bge-small-en-v1.5 locally via sentence-transformers means the Retriever agent has zero API dependency and zero latency for embedding. Only the 3 LLM reasoning steps hit the free HF API, keeping the system responsive even under multiple concurrent queries.</div>
+        <div class="tk-label">Running BAAI/bge-small-en-v1.5 locally via <code>langchain_huggingface.HuggingFaceEmbeddings</code> means the Retriever agent has zero API dependency and sub-millisecond embedding latency. Only the 3 LLM reasoning steps hit the free HF Router, keeping the system responsive even under multiple concurrent queries.</div>
       </div>
       <div class="takeaway">
         <div class="tk-icon">🔌</div>
-        <div class="tk-val">Provider-Agnostic LLM Layer</div>
-        <div class="tk-label">Using the OpenAI Python SDK pointed at <code>router.huggingface.co/v1</code> means swapping the LLM backend (to OpenAI, Groq, Anthropic, Ollama) requires changing one URL and one API key. The entire agent layer is provider-agnostic by design.</div>
+        <div class="tk-val">3-Model Picker + Provider-Agnostic Layer</div>
+        <div class="tk-label">A compact dropdown near the Ask button lets users choose Qwen 2.5-7B, Mistral Nemo 12B, or Phi-3.5 Mini without reloading. <code>set_model()</code> updates a global key; every <code>get_llm()</code> call reads it fresh — no stale cached chains. Swapping to OpenAI/Groq/Ollama needs one URL change.</div>
+      </div>
+      <div class="takeaway">
+        <div class="tk-icon">🎨</div>
+        <div class="tk-val">Live Pipeline + Light / Dark Theme</div>
+        <div class="tk-label">The ingestion row (Source→Chunker→Index) animates with CSS <code>@keyframes nodeGlow</code> when a file is being processed. Agent nodes glow color-coded (blue=LLM, green=local, gold=score) and arrows show a flowing dot as each step runs. Default is light theme; a header toggle persists preference via <code>localStorage</code>.</div>
       </div>
     </div>
   </div>
@@ -339,7 +344,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
       <h3>At a Glance</h3>
       <span class="ataglance-badge"><i class="fas fa-file-alt"></i> Quick read</span>
     </div>
-    <p class="tldr-text"><strong>What it is:</strong> Minimal agentic document research platform with 5 LangGraph agents and hybrid RAG. <strong>Tech:</strong> LangGraph · Qwen 2.5-7B · FAISS · BM25 · Flask. <strong>Deploy:</strong> Docker on HuggingFace Spaces (free tier). <strong>Scope:</strong> Upload a PDF or paste a URL, ask questions, get cited answers with a live agent trace.</p>
+    <p class="tldr-text"><strong>What it is:</strong> Multi-agent document research platform — LangGraph StateGraph orchestrates 5 agents; each LLM agent is a LangChain LCEL chain. <strong>Models:</strong> Qwen 2.5-7B / Mistral Nemo 12B / Phi-3.5 Mini — switchable via UI. <strong>UI:</strong> Live animated pipeline with light/dark theme. <strong>Deploy:</strong> Docker on HuggingFace Spaces (free tier). <strong>Scope:</strong> Upload a PDF or paste a URL, ask questions, get inline-cited answers with a real-time agent trace.</p>
   </div>
   <div class="sidebar-card">
     <h3>Try It Live</h3>
@@ -351,7 +356,7 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
     <div class="info-row"><span class="info-key">Type</span>       <span class="info-val">Portfolio / Research</span></div>
     <div class="info-row"><span class="info-key">Domain</span>     <span class="info-val">Agentic AI / NLP</span></div>
     <div class="info-row"><span class="info-key">Graph</span>      <span class="info-val">LangGraph 0.2 StateGraph</span></div>
-    <div class="info-row"><span class="info-key">LLM</span>        <span class="info-val">Qwen 2.5-7B (HF Router)</span></div>
+    <div class="info-row"><span class="info-key">LLM</span>        <span class="info-val">3 models · Qwen / Mistral / Phi</span></div>
     <div class="info-row"><span class="info-key">Embeddings</span> <span class="info-val">bge-small-en-v1.5 (local)</span></div>
     <div class="info-row"><span class="info-key">RAG type</span>   <span class="info-val">Hybrid (FAISS + BM25 + RRF)</span></div>
     <div class="info-row"><span class="info-key">Deploy</span>     <span class="info-val">Docker · HF Spaces · 7860</span></div>
@@ -361,12 +366,16 @@ h1{font-size:clamp(1.7rem,3.5vw,2.7rem);font-weight:900;line-height:1.2;margin-b
     <h3>Tech Stack</h3>
     <div class="tech-pills">
       <span class="tech-pill">LangGraph 0.2</span>
-      <span class="tech-pill">LangChain 0.3</span>
+      <span class="tech-pill">LangChain LCEL</span>
+      <span class="tech-pill">langchain-openai</span>
+      <span class="tech-pill">langchain-huggingface</span>
       <span class="tech-pill">Qwen 2.5-7B</span>
+      <span class="tech-pill">Mistral Nemo 12B</span>
+      <span class="tech-pill">Phi-3.5 Mini</span>
       <span class="tech-pill">HF Router API</span>
       <span class="tech-pill">FAISS</span>
       <span class="tech-pill">BM25 (RRF)</span>
-      <span class="tech-pill">sentence-transformers</span>
+      <span class="tech-pill">RecursiveTextSplitter</span>
       <span class="tech-pill">Flask 3.1</span>
       <span class="tech-pill">Docker</span>
       <span class="tech-pill">Gunicorn</span>
@@ -463,7 +472,7 @@ function buildChart(i){
   }else if(i===1){
     charts[1]=new Chart(ctx,{type:'bar',data:{labels:['Top-1 Precision','Top-3 Recall','Top-5 Recall','MRR'],datasets:[{label:'Hybrid (FAISS+BM25+RRF)',data:[0.91,0.84,0.79,0.88],backgroundColor:isDark()?'rgba(79,142,247,.7)':'rgba(37,99,235,.65)',borderRadius:6},{label:'Semantic Only (FAISS)',data:[0.83,0.71,0.67,0.76],backgroundColor:'rgba(136,146,164,.4)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},min:0.5,max:1,title:{display:true,text:'Score',color:t,font:{size:11}}}}}});
   }else if(i===2){
-    charts[2]=new Chart(ctx,{type:'bar',data:{labels:['MMLU','HellaSwag','TruthfulQA','ARC-Challenge'],datasets:[{label:'Qwen2.5-7B-Instruct',data:[74.2,85.4,53.1,67.8],backgroundColor:isDark()?'rgba(79,142,247,.75)':'rgba(37,99,235,.7)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},title:{display:true,text:'Score (%)',color:t,font:{size:11}},min:30}}}});
+    charts[2]=new Chart(ctx,{type:'bar',data:{labels:['MMLU','HellaSwag','TruthfulQA','ARC-Challenge'],datasets:[{label:'Qwen 2.5-7B',data:[74.2,85.4,53.1,67.8],backgroundColor:isDark()?'rgba(79,142,247,.75)':'rgba(37,99,235,.7)',borderRadius:6},{label:'Mistral Nemo 12B',data:[68.5,83.2,60.4,72.1],backgroundColor:isDark()?'rgba(167,139,250,.7)':'rgba(109,40,217,.6)',borderRadius:6},{label:'Phi-3.5 Mini 3.8B',data:[69.0,78.5,47.2,61.4],backgroundColor:isDark()?'rgba(34,197,94,.65)':'rgba(21,128,61,.6)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:t}},tooltip:tip},scales:{x:{ticks:{color:t},grid:{color:g}},y:{ticks:{color:t},grid:{color:g},title:{display:true,text:'Score (%)',color:t,font:{size:11}},min:30}}}});
   }
 }
 function switchTab(i,el){document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.chart-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('cp'+i).classList.add('active');buildChart(i);}
