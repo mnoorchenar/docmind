@@ -17,8 +17,12 @@ sdk: docker
 [![LangChain](https://img.shields.io/badge/LangChain-0.3-4f46e5?style=for-the-badge)](https://langchain.com/)
 [![Flask](https://img.shields.io/badge/Flask-3.1-3b82f6?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-3b82f6?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Spaces-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)
 [![Status](https://img.shields.io/badge/Status-Active-22c55e?style=for-the-badge)](#)
+
+<br/>
+
+[![Live Demo](https://img.shields.io/badge/%E2%96%B6_Live_Demo-Hugging_Face_Space-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/mnoorchenar/docmind)
+[![Source Code](https://img.shields.io/badge/Source_Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar/docmind)
 
 <br/>
 
@@ -31,16 +35,17 @@ sdk: docker
 </div>
 
 ## Table of Contents
+
 - [Features](#-features)
 - [Architecture](#️-architecture)
 - [Getting Started](#-getting-started)
 - [Docker Deployment](#-docker-deployment)
-- [Dashboard Modules](#-dashboard-modules)
+- [App Modules](#-app-modules)
 - [ML Models](#-ml-models)
 - [Project Structure](#-project-structure)
 - [Author](#-author)
 - [Contributing](#-contributing)
-- [Disclaimer](#disclaimer)
+- [Disclaimer](#️-disclaimer)
 - [License](#-license)
 
 ---
@@ -161,29 +166,44 @@ stack = {
 
 ```
 docmind/
-├── 📄 app.py                     # Flask entry point, 5 REST routes
-├── 📄 requirements.txt
-├── 📄 Dockerfile                 # Port 7860, embedding model pre-downloaded
-├── 📄 .env.example
+│
 ├── 📂 agents/
-│   ├── 📄 llm_factory.py         # get_llm() → LangChain ChatOpenAI (HF Router)
-│   ├── 📄 planner.py             # LCEL: ChatPromptTemplate | ChatOpenAI | StrOutputParser
-│   ├── 📄 retriever.py           # Hybrid FAISS+BM25 search wrapper
-│   ├── 📄 grader.py              # Score-based relevance grading (no LLM call)
-│   ├── 📄 generator.py           # LCEL chain — cited answer generation
-│   └── 📄 critic.py              # LCEL chain — hallucination detection
+│   ├── __init__.py
+│   ├── critic.py
+│   ├── generator.py
+│   ├── grader.py
+│   ├── llm_factory.py
+│   ├── planner.py
+│   └── … 1 more
+├── 📂 data/
+│   ├── processed/
+│   └── raw/
+├── 📂 docs/
+│   └── 013-docmind.html
 ├── 📂 graph/
-│   └── 📄 research_graph.py      # LangGraph StateGraph (5 nodes, linear pipeline)
+│   ├── __init__.py
+│   └── research_graph.py
 ├── 📂 rag/
-│   ├── 📄 ingestor.py            # RecursiveCharacterTextSplitter + Document objects
-│   ├── 📄 vector_store.py        # FAISS + BM25 + RRF, accepts Document or dict
-│   └── 📄 embeddings.py          # LangChain HuggingFaceEmbeddings (bge-small-en-v1.5)
+│   ├── __init__.py
+│   ├── embeddings.py
+│   ├── ingestor.py
+│   └── vector_store.py
+├── 📂 templates/                 # HTML templates
+│   └── index.html
+├── 📂 tools/
+│   ├── __init__.py
+│   ├── calculator.py
+│   ├── code_tool.py
+│   └── web_search.py
 ├── 📂 tracing/
-│   └── 📄 tracer.py              # Thread-safe in-memory trace store
-├── 📂 templates/
-│   └── 📄 index.html             # Dark-mode single-page UI
-└── 📂 docs/
-    └── 📄 project-template.html  # Portfolio showcase page
+│   ├── __init__.py
+│   └── tracer.py
+├── 📄 .env.example               # Environment variable template
+├── 📄 Dockerfile                 # Port 7860, embedding model pre-downloaded
+├── 📄 app.py                     # Flask entry point, 5 REST routes
+├── 📄 code.txt
+├── 📄 requirements.txt           # Python dependencies
+└── 📄 write_html.py
 ```
 
 ---
@@ -191,33 +211,51 @@ docmind/
 ## 👨‍💻 Author
 
 <div align="center">
-<table><tr><td align="center" width="100%">
-<img src="https://avatars.githubusercontent.com/mnoorchenar" width="120" style="border-radius:50%;border:3px solid #4f46e5" alt="Mohammad Noorchenarboo"/>
-<h3>Mohammad Noorchenarboo</h3>
-<code>Data Scientist</code> &nbsp;|&nbsp; <code>AI Researcher</code> &nbsp;|&nbsp; <code>Biostatistician</code>
-📍 Ontario, Canada &nbsp;&nbsp; 📧 mohammadnoorchenarboo@gmail.com
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mnoorchenar)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)
+<table>
+<tr>
+<td align="center" width="100%">
+
+<img src="https://avatars.githubusercontent.com/mnoorchenar" width="120" style="border-radius:50%; border: 3px solid #4f46e5;" alt="Mohammad Noorchenarboo"/>
+
+<h3>Mohammad Noorchenarboo</h3>
+
+<code>Data Scientist</code> &nbsp;|&nbsp; <code>AI Researcher</code> &nbsp;|&nbsp; <code>Biostatistician</code>
+
+📍 &nbsp;Ontario, Canada &nbsp;&nbsp; 📧 &nbsp;[mohammadnoorchenarboo@gmail.com](mailto:mohammadnoorchenarboo@gmail.com)
+
+──────────────────────────────────────
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mnoorchenar)&nbsp;
+[![Personal Site](https://img.shields.io/badge/Website-mnoorchenar.github.io-4f46e5?style=for-the-badge&logo=githubpages&logoColor=white)](https://mnoorchenar.github.io/)&nbsp;
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar)&nbsp;
+[![Google Scholar](https://img.shields.io/badge/Scholar-4285F4?style=for-the-badge&logo=googlescholar&logoColor=white)](https://scholar.google.ca/citations?user=nn_Toq0AAAAJ&hl=en)&nbsp;
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar)
-</td></tr></table>
+
+</td>
+</tr>
+</table>
+
 </div>
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+Contributions are welcome! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'Add amazing feature'`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
 
 ---
 
-## Disclaimer
+## ⚠️ Disclaimer
 
-<span style="color:red">This project is developed strictly for educational and research purposes. All LLM outputs are AI-generated and may contain inaccuracies. No real user data is stored. Provided "as is" without warranty of any kind.</span>
+> [!WARNING]
+> This project is developed strictly for educational and research purposes. All LLM outputs are AI-generated and may contain inaccuracies. No real user data is stored. Provided "as is" without warranty of any kind.
 
 ---
 
@@ -225,6 +263,15 @@ docmind/
 
 Distributed under the **MIT License**.
 
+---
+
 <div align="center">
+
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:4f46e5&height=120&section=footer&text=Made%20with%20%E2%9D%A4%EF%B8%8F%20by%20Mohammad%20Noorchenarboo&fontColor=ffffff&fontSize=18&fontAlignY=80" width="100%"/>
+
+[![GitHub Stars](https://img.shields.io/github/stars/mnoorchenar/docmind?style=social)](https://github.com/mnoorchenar/docmind/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/mnoorchenar/docmind?style=social)](https://github.com/mnoorchenar/docmind/fork)
+
+<sub>The name "DocMind — Agentic Research Platform" is used purely for academic and research purposes. Any similarity to existing product names or trademarks is entirely coincidental. This project has no affiliation with any commercial entity.</sub>
+
 </div>
