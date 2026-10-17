@@ -73,6 +73,12 @@ function ConvertTo-PyJson($Value, [int]$Level = 0) {
 }
 
 function Update-IndexJson([string]$Root) {
+  # Only rebuild listings in this layout (or an empty list). Apps with their own
+  # index.json format, like Markdown2PDF's library, are left alone.
+  try { $existing = @([IO.File]::ReadAllText((Join-Path $Root 'index.json')) | ConvertFrom-Json) } catch { return $false }
+  foreach ($e in $existing) {
+    if ($null -eq $e -or (@($e.PSObject.Properties.Name) -join ',') -ne 'name,folder,files,subfolders') { return $false }
+  }
   $structure = New-Object System.Collections.ArrayList
   foreach ($folder in (Get-SortedNames $Root $true)) {
     if ($SkipFolders -ccontains $folder) { continue }
@@ -180,8 +186,11 @@ $cache  = Join-Path $env:LOCALAPPDATA ('hf-sync\' + $hfRepo.Replace('/', '__'))
 $env:GIT_LFS_SKIP_SMUDGE = '1'
 try {
   if (-not (Test-Path -LiteralPath (Join-Path $cache '.git'))) {
-    $out = git -c credential.helper= clone -q $hfUrl $cache 2>&1
-    if ($LASTEXITCODE -ne 0) { Fail "Could not clone huggingface.co/$hfRepo`n$(Hide $out)" }
+    $out = git -c credential.helper= -c core.longpaths=true clone -q $hfUrl $cache 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue
+      Fail "Could not clone huggingface.co/$hfRepo`n$(Hide $out)"
+    }
     git -C $cache remote set-url origin "https://huggingface.co/$hfRepo"
   }
   git -C $cache config core.longpaths true
