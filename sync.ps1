@@ -102,7 +102,8 @@ function Update-IndexJson([string]$Root) {
 }
 
 # ---- Start ------------------------------------------------------------------
-$repoRoot = git rev-parse --show-toplevel 2>$null
+# Use the repo this script lives in, so it works from any current folder.
+$repoRoot = git -C $PSScriptRoot rev-parse --show-toplevel 2>$null
 if ($LASTEXITCODE -ne 0) { Fail "Not a git repository" }
 Set-Location $repoRoot
 $branch = git rev-parse --abbrev-ref HEAD
