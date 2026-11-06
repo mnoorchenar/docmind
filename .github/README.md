@@ -20,6 +20,8 @@ DocMind retrieves with hybrid search, asks the model to cite the page for each c
 
 [![Features](https://img.shields.io/badge/Features-334155?style=flat-square)](#features) [![How it works](https://img.shields.io/badge/How_it_works-334155?style=flat-square)](#how-it-works) [![Documentation](https://img.shields.io/badge/Documentation-334155?style=flat-square)](#documentation) [![Author](https://img.shields.io/badge/Author-334155?style=flat-square)](#author)
 
+<img src="../docs/app-demo.gif" alt="Demo: fetching a Wikipedia article on retrieval-augmented generation, then asking about its limitations and getting a cited answer with a confidence verdict" width="100%"/>
+
 <table>
   <tr>
     <td align="center"><h3>3</h3>LLM calls per question, for 5 agents</td>
