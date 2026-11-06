@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300" role="img" aria-labelledby="title desc" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="title">How DocMind answers a question</title>
+  <desc id="desc">A PDF or web page is split into chunks, embedded, and stored in a hybrid FAISS and BM25 index. A question goes through five agents in order: planner, retriever, grader, generator and critic. The planner, generator and critic call the language model. The retriever and grader do not. The result is a cited answer with a confidence verdict.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.5; }
+    .llm { fill: #e0f2fe; stroke: #0284c7; stroke-width: 1.5; }
+    .text { fill: #0f172a; font-size: 16px; font-weight: 600; text-anchor: middle; }
+    .sub { fill: #475569; font-size: 13px; font-weight: 500; text-anchor: middle; }
+    .white { fill: #ffffff; font-size: 16px; font-weight: 700; text-anchor: middle; }
+    .whitesub { fill: #ccfbf1; font-size: 13px; font-weight: 500; text-anchor: middle; }
+    .band { fill: #64748b; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .line { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+  </style>
+  <rect x="1" y="1" width="998" height="298" rx="12" fill="#ffffff" stroke="#d0d7de" stroke-width="2"/>
+
+  <text class="band" x="24" y="30">1. INDEX THE SOURCE</text>
+  <text class="band" x="24" y="152">2. ANSWER A QUESTION</text>
+
+  <rect class="box" x="24" y="46" width="130" height="56" rx="28"/>
+  <text class="text" x="89" y="70">PDF or URL</text>
+  <text class="sub" x="89" y="90">max 10 MB</text>
+
+  <rect class="box" x="190" y="46" width="140" height="56" rx="8"/>
+  <text class="text" x="260" y="70">Chunk and embed</text>
+  <text class="sub" x="260" y="90">1500 chars, local model</text>
+
+  <rect class="box" x="366" y="46" width="170" height="56" rx="8"/>
+  <text class="text" x="451" y="70">Hybrid index</text>
+  <text class="sub" x="451" y="90">FAISS + BM25</text>
+
+  <path class="line" d="M154 74H190"/>
+  <path class="line" d="M330 74H366"/>
+  <path class="line" d="M380 102V190"/>
+
+  <rect class="box" x="24" y="190" width="96" height="56" rx="28"/>
+  <text class="text" x="72" y="222">Question</text>
+
+  <rect class="llm" x="146" y="190" width="104" height="56" rx="8"/>
+  <text class="text" x="198" y="214">Planner</text>
+  <text class="sub" x="198" y="234">LLM call 1</text>
+
+  <rect class="box" x="276" y="190" width="116" height="56" rx="8"/>
+  <text class="text" x="334" y="214">Retriever</text>
+  <text class="sub" x="334" y="234">RRF fusion</text>
+
+  <rect class="box" x="418" y="190" width="104" height="56" rx="8"/>
+  <text class="text" x="470" y="214">Grader</text>
+  <text class="sub" x="470" y="234">no LLM</text>
+
+  <rect class="llm" x="548" y="190" width="116" height="56" rx="8"/>
+  <text class="text" x="606" y="214">Generator</text>
+  <text class="sub" x="606" y="234">LLM call 2</text>
+
+  <rect class="llm" x="690" y="190" width="104" height="56" rx="8"/>
+  <text class="text" x="742" y="214">Critic</text>
+  <text class="sub" x="742" y="234">LLM call 3</text>
+
+  <rect x="820" y="190" width="156" height="56" rx="28" fill="#0f766e"/>
+  <text class="white" x="898" y="214">Cited answer</text>
+  <text class="whitesub" x="898" y="234">+ confidence verdict</text>
+
+  <path class="line" d="M120 218H146"/>
+  <path class="line" d="M250 218H276"/>
+  <path class="line" d="M392 218H418"/>
+  <path class="line" d="M522 218H548"/>
+  <path class="line" d="M664 218H690"/>
+  <path class="line" d="M794 218H820"/>
+
+  <rect class="llm" x="24" y="266" width="14" height="14" rx="3"/>
+  <text class="sub" x="46" y="278" style="text-anchor:start">Calls the language model</text>
+  <rect class="box" x="222" y="266" width="14" height="14" rx="3"/>
+  <text class="sub" x="244" y="278" style="text-anchor:start">Runs locally in the app</text>
+</svg>

@@ -22,6 +22,12 @@ class GraphState(TypedDict):
     timestamp:   str
 
 
+def _select_docs(graded_docs: list, min_grade: float = 0.35, limit: int = 4) -> list:
+    """Chunks the generator answers from; the critic judges against the same set."""
+    good = [d for d in graded_docs if d.get("grade", 0) >= min_grade] or graded_docs
+    return good[:limit]
+
+
 class ResearchGraph:
     def __init__(self, vector_store, tracer):
         self.vs     = vector_store
@@ -56,8 +62,8 @@ class ResearchGraph:
     def _generator_node(self, state: GraphState) -> dict:
         t0 = time.time()
         self.tracer.add(state["query_id"], "generator", "Generating answer from relevant context…", "running", 0)
-        good_docs = [d for d in state["graded_docs"] if d.get("grade", 0) >= 0.35] or state["graded_docs"]
-        gen  = run_generator(state["question"], good_docs[:4])
+        good_docs = _select_docs(state["graded_docs"])
+        gen  = run_generator(state["question"], good_docs)
         ms   = int((time.time() - t0) * 1000)
         self.tracer.add(state["query_id"], "generator", f"Answer generated ({len(gen)} chars).", "complete", ms)
         return {"generation": gen}
@@ -65,7 +71,7 @@ class ResearchGraph:
     def _critic_node(self, state: GraphState) -> dict:
         t0 = time.time()
         self.tracer.add(state["query_id"], "critic", "Evaluating answer quality…", "running", 0)
-        result = run_critic(state["question"], state["generation"], state["graded_docs"])
+        result = run_critic(state["question"], state["generation"], _select_docs(state["graded_docs"]))
         ms     = int((time.time() - t0) * 1000)
         label  = "✅ High confidence." if result["verdict"] == "APPROVED" else "⚠️ Low confidence — verify with source."
         self.tracer.add(state["query_id"], "critic", f"{label} {result['explanation'][:160]}", "complete", ms)

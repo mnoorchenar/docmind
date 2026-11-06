@@ -18,13 +18,13 @@ is incomplete, or is incoherent."""
 
 _prompt = ChatPromptTemplate.from_messages([
     ("system", _SYSTEM),
-    ("human", "Question: {question}\nContext (first 1500 chars): {context}\nAnswer: {answer}"),
+    ("human", "Question: {question}\nContext (first 4000 chars): {context}\nAnswer: {answer}"),
 ])
 
 
 def run_critic(question: str, answer: str, documents: list) -> dict:
     chain       = _prompt | get_llm(temperature=0.1, max_tokens=150) | StrOutputParser()
-    context     = " ".join(d["page_content"] for d in documents)[:1500]
+    context     = " ".join(d["page_content"] for d in documents)[:4000]
     raw         = chain.invoke({"question": question, "context": context, "answer": answer})
     verdict     = "NEEDS_REVIEW" if re.search(r"NEEDS_REVIEW", raw, re.IGNORECASE) else "APPROVED"
     explanation = raw.split("\n", 1)[-1].strip() if "\n" in raw else raw

@@ -5,10 +5,12 @@ Both ingestors use LangChain's RecursiveCharacterTextSplitter for chunking
 and return lists of LangChain Document objects, making them compatible with
 any LangChain-based vector store or retrieval pipeline.
 """
+import ipaddress
 import os
 import re
+import socket
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from pypdf import PdfReader
 from bs4 import BeautifulSoup
@@ -34,6 +36,33 @@ _PDF_HINT = (
     "\n\nTip: This page cannot be fetched automatically. "
     "Open it in your browser → Print → Save as PDF → upload the PDF here."
 )
+
+
+def _assert_public_host(url: str) -> None:
+    """Refuse URLs that resolve to private, loopback or link-local addresses (SSRF guard)."""
+    host = urlparse(url).hostname
+    if not host:
+        raise ValueError("That URL has no host name.")
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise ValueError(f"Could not resolve {host}.")
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if not ip.is_global:
+            raise ValueError("Only public web addresses can be fetched.")
+
+
+def _get_public(url: str, max_redirects: int = 5) -> requests.Response:
+    """GET a URL, validating every redirect hop against the public-address check."""
+    for _ in range(max_redirects + 1):
+        _assert_public_host(url)
+        resp = requests.get(url, headers=_HEADERS, timeout=20, allow_redirects=False)
+        if resp.is_redirect and resp.headers.get("Location"):
+            url = urljoin(url, resp.headers["Location"])
+            continue
+        return resp
+    raise ValueError("Too many redirects.")
 
 
 def _make_splitter(chunk_size: int = 1500, chunk_overlap: int = 200) -> RecursiveCharacterTextSplitter:
@@ -100,7 +129,7 @@ class URLIngestor:
         if domain in _BLOCKED_DOMAINS:
             raise ValueError(f"⛔ {domain} blocks all automated access." + _PDF_HINT)
         try:
-            resp = requests.get(url, headers=_HEADERS, timeout=20, allow_redirects=True)
+            resp = _get_public(url)
             if resp.status_code == 403:
                 raise ValueError("403 Forbidden — this site blocks automated access." + _PDF_HINT)
             if resp.status_code == 404:

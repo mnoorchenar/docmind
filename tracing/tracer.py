@@ -18,6 +18,8 @@ class Tracer:
         }
         with self._lock:
             self._traces.setdefault(query_id, []).append(step)
+            while len(self._traces) > 200:         # keep memory bounded: drop the oldest trace
+                self._traces.pop(next(iter(self._traces)))
             self._global["agent_calls"].setdefault(agent, 0)
             self._global["agent_calls"][agent] += 1
             self._global["latencies"].setdefault(agent, [])

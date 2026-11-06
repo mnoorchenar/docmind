@@ -9,7 +9,7 @@ from rag.vector_store     import HybridVectorStore
 from rag.ingestor         import PDFIngestor, URLIngestor, MAX_PDF_BYTES
 from graph.research_graph import ResearchGraph
 from tracing.tracer       import Tracer
-from agents.llm_factory   import AVAILABLE_MODELS, set_model, get_current_model
+from agents.llm_factory   import AVAILABLE_MODELS, set_model, get_current_model, has_credentials
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
@@ -21,6 +21,27 @@ vector_store = HybridVectorStore()
 tracer       = Tracer()
 graph        = ResearchGraph(vector_store, tracer)
 queries: dict = {}
+
+
+MAX_TRACKED_QUERIES = 100
+
+
+def _friendly_error(exc: Exception) -> str:
+    """Turn raw provider errors into messages a visitor can act on."""
+    text = str(exc)
+    provider = get_current_model()["provider"]
+    key_env  = "GROQ_API_KEY" if provider == "Groq" else "HF_TOKEN"
+    if "is not set" in text and key_env in text:
+        return f"No {key_env} secret is configured for this Space."
+    if "401" in text or "Invalid username or password" in text or "Invalid API Key" in text:
+        return (f"The {provider} credential configured for this Space was rejected (401). "
+                f"The Space owner needs to set a valid {key_env} secret.")
+    if "403" in text:
+        return (f"The {provider} credential does not have permission to call this model (403). "
+                "Check the key's permissions.")
+    if "429" in text:
+        return "The free inference tier is rate limited right now. Wait a moment and try again."
+    return text
 
 
 def _clear_uploads() -> None:
@@ -46,7 +67,8 @@ def health():
         "chunks_stored": vector_store.chunk_count,
         "source":        vector_store.source_label,
         "model":         get_current_model()["label"],
-        "token_set":     bool(os.getenv("HF_TOKEN")),
+        "provider":      get_current_model()["provider"],
+        "token_set":     has_credentials(),
     })
 
 
@@ -90,6 +112,8 @@ def upload():
         vector_store.clear()
         vector_store.add_documents(chunks, source_label=f.filename)
         return jsonify({"success": True, "filename": f.filename, "chunks": len(chunks)})
+    except ValueError as exc:                      # unreadable or empty file: the caller's problem
+        return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -108,6 +132,8 @@ def ingest_url():
         _clear_uploads()
         vector_store.add_documents(chunks, source_label=url)
         return jsonify({"success": True, "url": url, "chunks": len(chunks)})
+    except ValueError as exc:                      # blocked, unreachable or empty page
+        return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -127,13 +153,15 @@ def research():
 
     qid          = str(uuid.uuid4())
     queries[qid] = {"status": "running", "result": None}
+    while len(queries) > MAX_TRACKED_QUERIES:      # dicts keep insertion order: drop the oldest
+        queries.pop(next(iter(queries)), None)
 
     def _run():
         try:
             result = graph.run(question, qid)
             queries[qid].update({"status": "complete", "result": result})
         except Exception as exc:
-            queries[qid].update({"status": "error", "result": {"error": str(exc)}})
+            queries[qid].update({"status": "error", "result": {"error": _friendly_error(exc)}})
 
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"query_id": qid})

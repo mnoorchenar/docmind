@@ -621,51 +621,13 @@ textarea:focus{border-color:var(--accent)}
       <!-- ── MODEL DROPDOWN ── -->
       <div class="model-sel-wrap" id="model-sel-wrap">
         <button class="model-sel-btn" id="model-sel-btn" onclick="toggleMenu(event)">
-          <span class="msb-dot" id="msb-dot" style="background:#4a7cf7"></span>
-          <span id="msb-label">Qwen 2.5&#xB7;7B</span>
+          <span class="msb-dot" id="msb-dot" style="background:#94a3b8"></span>
+          <span id="msb-label">Loading models&hellip;</span>
           <span class="msb-caret">&#9660;</span>
         </button>
         <div class="model-menu" id="model-menu">
-          <div class="mm-header">Select LLM Model</div>
-          <div class="mm-item selected" data-key="qwen-7b" data-color="#4a7cf7"
-               data-label="Qwen 2.5&#xB7;7B" onclick="pickModel(this)">
-            <span class="mm-dot" style="background:#4a7cf7"></span>
-            <div class="mm-body">
-              <div class="mm-name">Qwen 2.5 &middot; 7B</div>
-              <div class="mm-desc">Default &middot; fast &amp; free</div>
-            </div>
-            <div class="mm-right">
-              <span class="mm-params">7B</span>
-              <span class="mm-speed">&#9889;&#9889;&#9889;</span>
-            </div>
-            <span class="mm-check">&#10003;</span>
-          </div>
-          <div class="mm-item" data-key="mistral-nemo" data-color="#6d28d9"
-               data-label="Mistral Nemo&#xB7;12B" onclick="pickModel(this)">
-            <span class="mm-dot" style="background:#6d28d9"></span>
-            <div class="mm-body">
-              <div class="mm-name">Mistral Nemo &middot; 12B</div>
-              <div class="mm-desc">Stronger reasoning</div>
-            </div>
-            <div class="mm-right">
-              <span class="mm-params">12B</span>
-              <span class="mm-speed">&#9889;&#9889;</span>
-            </div>
-            <span class="mm-check">&#10003;</span>
-          </div>
-          <div class="mm-item" data-key="phi-3-mini" data-color="#15924f"
-               data-label="Phi-3.5 Mini&#xB7;3.8B" onclick="pickModel(this)">
-            <span class="mm-dot" style="background:#15924f"></span>
-            <div class="mm-body">
-              <div class="mm-name">Phi-3.5 Mini &middot; 3.8B</div>
-              <div class="mm-desc">Ultra-fast &amp; focused</div>
-            </div>
-            <div class="mm-right">
-              <span class="mm-params">3.8B</span>
-              <span class="mm-speed">&#9889;&#9889;&#9889;</span>
-            </div>
-            <span class="mm-check">&#10003;</span>
-          </div>
+          <div class="mm-header" id="mm-header">Select LLM Model</div>
+          <div id="mm-list"></div>
         </div>
       </div>
 
@@ -698,7 +660,7 @@ textarea:focus{border-color:var(--accent)}
 
 <script>
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-let pollTimer=null,seen=0,selectedModel="qwen-7b";
+let pollTimer=null,seen=0,selectedModel="";
 
 /* ════════════════════════════════════════════
    THEME TOGGLE
@@ -843,7 +805,25 @@ function toggleMenu(e){
   e.stopPropagation();
   document.getElementById("model-sel-wrap").classList.toggle("open");
 }
-function pickModel(item){
+function loadModels(){
+  fetch("/api/models").then(r=>r.json()).then(d=>{
+    const list=document.getElementById("mm-list");
+    list.innerHTML="";
+    Object.entries(d.models).forEach(([key,m])=>{
+      const item=document.createElement("div");
+      item.className="mm-item";
+      item.dataset.key=key;item.dataset.color=m.color;item.dataset.label=m.label;
+      item.onclick=()=>pickModel(item,false);
+      item.innerHTML='<span class="mm-dot" style="background:'+esc(m.color)+'"></span>'+
+        '<div class="mm-body"><div class="mm-name">'+esc(m.label)+'</div><div class="mm-desc">'+esc(m.desc)+'</div></div>'+
+        '<div class="mm-right"><span class="mm-params">'+esc(m.params)+'</span><span class="mm-speed">'+"&#9889;".repeat(m.speed)+'</span></div>'+
+        '<span class="mm-check">&#10003;</span>';
+      list.appendChild(item);
+      if(key===d.current)pickModel(item,true);
+    });
+  }).catch(()=>{document.getElementById("msb-label").textContent="Model";});
+}
+function pickModel(item,initial){
   const key=item.dataset.key,color=item.dataset.color,label=item.dataset.label;
   document.querySelectorAll(".mm-item").forEach(i=>i.classList.remove("selected"));
   item.classList.add("selected");
@@ -851,9 +831,10 @@ function pickModel(item){
   document.getElementById("msb-dot").style.background=color;
   document.getElementById("msb-label").textContent=label;
   document.getElementById("model-sel-wrap").classList.remove("open");
-  fetch("/api/set_model",{method:"POST",headers:{"Content-Type":"application/json"},
+  if(!initial)fetch("/api/set_model",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:key})}).catch(()=>{});
 }
+loadModels();
 document.addEventListener("click",e=>{
   const w=document.getElementById("model-sel-wrap");
   if(w&&!w.contains(e.target))w.classList.remove("open");

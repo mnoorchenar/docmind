@@ -3,275 +3,213 @@ title: DocMind-Agentic-Research
 colorFrom: blue
 colorTo: indigo
 sdk: docker
+app_port: 7860
+license: mit
 ---
+
+<!-- Generated from .github/README.md by scripts/sync_readme.py. Edit that file instead. -->
 
 <div align="center">
 
-<h1>🧠 DocMind — Agentic Research Platform</h1>
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=4f8ef7&center=true&vCenter=true&width=700&lines=LangGraph+%C2%B7+5+Agents+%C2%B7+Hybrid+RAG;Qwen+2.5-7B+%C2%B7+3+LLM+Calls+per+Query;Deployed+Free+on+HuggingFace+Spaces" alt="Typing SVG"/>
+# DocMind
 
-<br/>
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=20&duration=2800&pause=900&color=14B8A6&center=true&vCenter=true&width=720&lines=Ask%20questions%20of%20any%20PDF%20or%20web%20page;Five%20agents%20plan%2C%20retrieve%2C%20grade%2C%20answer%20and%20check;Every%20answer%20is%20checked%20against%20its%20own%20sources" alt="Ask questions of any PDF or web page"/>
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3b82f6?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-06b6d4?style=for-the-badge)](https://github.com/langchain-ai/langgraph)
-[![LangChain](https://img.shields.io/badge/LangChain-0.3-4f46e5?style=for-the-badge)](https://langchain.com/)
-[![Flask](https://img.shields.io/badge/Flask-3.1-3b82f6?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-3b82f6?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Status](https://img.shields.io/badge/Status-Active-22c55e?style=for-the-badge)](#)
+[![Live demo](https://img.shields.io/badge/%E2%96%B6_Live_demo-Try_it_now-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/mnoorchenar/docmind)
+[![Author](https://img.shields.io/badge/Author-Mohammad_Noorchenarboo-0f766e?style=for-the-badge)](https://mnoorchenar.github.io/)
 
-<br/>
+[![Python](https://img.shields.io/badge/Python-3.10-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-06b6d4?style=flat-square)](https://github.com/langchain-ai/langgraph)
+[![LangChain](https://img.shields.io/badge/LangChain-0.3-4f46e5?style=flat-square)](https://www.langchain.com/)
+[![Groq](https://img.shields.io/badge/AI-Groq-f55036?style=flat-square)](https://groq.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-[![Live Demo](https://img.shields.io/badge/%E2%96%B6_Live_Demo-Hugging_Face_Space-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/mnoorchenar/docmind)
-[![Source Code](https://img.shields.io/badge/Source_Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar/docmind)
+**Most chat-with-your-PDF tools give one confident answer and no way to judge it.**<br>
+DocMind retrieves with hybrid search, asks the model to cite the page for each claim, and has a second pass check the answer against the same passages.
 
-<br/>
+[![Features](https://img.shields.io/badge/Features-334155?style=flat-square)](#features) [![How it works](https://img.shields.io/badge/How_it_works-334155?style=flat-square)](#how-it-works) [![Documentation](https://img.shields.io/badge/Documentation-334155?style=flat-square)](#documentation) [![Author](https://img.shields.io/badge/Author-334155?style=flat-square)](#author)
 
-**🧠 DocMind** — A clean, minimal agentic document research platform. Five specialized LangGraph agents plan, retrieve, grade, generate, and critique answers from uploaded PDFs and web pages using hybrid search and Qwen 2.5-7B — all running free on HuggingFace Spaces.
-
-<br/>
-
----
+<table>
+  <tr>
+    <td align="center"><h3>3</h3>LLM calls per question, for 5 agents</td>
+    <td align="center"><h3>32</h3>automated tests, none needing network or an API key</td>
+    <td align="center"><h3>3</h3>selectable open models, switchable per question</td>
+    <td align="center"><h3>$0</h3>to host, on a free CPU Space</td>
+  </tr>
+</table>
 
 </div>
 
-## Table of Contents
-
-- [Features](#-features)
-- [Architecture](#️-architecture)
-- [Getting Started](#-getting-started)
-- [Docker Deployment](#-docker-deployment)
-- [App Modules](#-app-modules)
-- [ML Models](#-ml-models)
-- [Project Structure](#-project-structure)
-- [Author](#-author)
-- [Contributing](#-contributing)
-- [Disclaimer](#️-disclaimer)
-- [License](#-license)
-
----
-
-## ✨ Features
+## Features
 
 <table>
-  <tr><td>🧠 <b>LangGraph State Machine</b></td><td>Five agents wired into a linear StateGraph — Planner → Retriever → Grader → Generator → Critic.</td></tr>
-  <tr><td>🔍 <b>Hybrid RAG (FAISS + BM25)</b></td><td>Semantic vector search combined with BM25 keyword search, fused via Reciprocal Rank Fusion for precision retrieval.</td></tr>
-  <tr><td>🤖 <b>Multi-Agent Orchestration</b></td><td>Planner, Retriever, Grader, Generator, and Critic agents each with specialized roles — only 3 LLM calls per query.</td></tr>
-  <tr><td>⚡ <b>Score-Based Grading</b></td><td>Grader uses hybrid search scores + keyword overlap — no LLM call needed, instant and deterministic relevance scoring.</td></tr>
-  <tr><td>📄 <b>PDF &amp; URL Ingestion</b></td><td>Upload PDF files up to 10 MB or paste any public URL — both are chunked, embedded, and indexed automatically.</td></tr>
-  <tr><td>🔒 <b>Secure by Design</b></td><td>Stateless REST backend, no user data persisted, HF token kept server-side only.</td></tr>
-  <tr><td>🐳 <b>Containerized Deployment</b></td><td>Docker-first with Gunicorn, embedding model pre-downloaded at build time for fast cold starts.</td></tr>
+  <tr>
+    <td width="50%"><b>Five-agent pipeline</b><br>A LangGraph state machine runs a planner, retriever, grader, generator and critic in order, and shows each step live in a trace panel.</td>
+    <td width="50%"><b>Hybrid retrieval</b><br>FAISS vector search and BM25 keyword search are merged with Reciprocal Rank Fusion, so both paraphrases and exact terms are found.</td>
+  </tr>
+  <tr>
+    <td><b>PDF and web page sources</b><br>Upload a PDF up to 10 MB or paste a public URL. Page numbers are kept so answers can cite them.</td>
+    <td><b>Answer check</b><br>A critic pass compares the answer with the passages it was built from and labels it high confidence or worth verifying.</td>
+  </tr>
+  <tr>
+    <td><b>Cheap grading</b><br>Chunk relevance comes from the search score and keyword overlap, so grading adds no LLM call and no wait.</td>
+    <td><b>Model picker</b><br>Switch between GPT-OSS 20B, GPT-OSS 120B and Qwen 3.8 27B on Groq. Without a Groq key it falls back to the Hugging Face router.</td>
+  </tr>
 </table>
 
----
+## How it works
 
-## 🏗️ Architecture
+<img src="docs/how-it-works.svg" width="100%" alt="Flowchart: a PDF or URL is chunked, embedded and stored in a hybrid FAISS and BM25 index. A question passes through the planner, retriever, grader, generator and critic. The planner, generator and critic call the language model. The result is a cited answer with a confidence verdict."/>
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   DocMind — LangGraph Flow                    │
-│                                                              │
-│  PDF / URL ──▶ Ingestor ──▶ FAISS+BM25 Hybrid Vector Store  │
-│                                    │                         │
-│  User Query ──▶ [PLANNER Agent]    │   (Qwen 2.5-7B, 0.3)   │
-│                      │             │                         │
-│                 [RETRIEVER] ◀──────┘  (FAISS+BM25+RRF)      │
-│                      │                                       │
-│                 [GRADER]  (score-based, no LLM call)         │
-│                      │                                       │
-│                 [GENERATOR]         (Qwen 2.5-7B, 0.4)       │
-│                      │                                       │
-│                  [CRITIC]           (Qwen 2.5-7B, 0.1)       │
-│                      │                                       │
-│                  [OUTPUT]  Flask API + Single-Page UI         │
-└──────────────────────────────────────────────────────────────┘
-```
+## Documentation
 
----
+<details>
+<summary><b>Getting started</b></summary>
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.10+ · Docker · Git · Free HuggingFace account
-
-### Local Installation
+Requires Python 3.10+ and a free [Groq API key](https://console.groq.com/keys). Indexing runs locally and needs no key, but answering does. Instead of Groq, you can set a Hugging Face token with the **Make calls to Inference Providers** permission.
 
 ```bash
 git clone https://github.com/mnoorchenar/docmind.git
 cd docmind
 
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
+source venv/bin/activate     # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env
-# Edit .env — set HF_TOKEN to your free HuggingFace Read token
-
+cp .env.example .env         # then set GROQ_API_KEY
 python app.py
 ```
 
-Open `http://localhost:7860` 🎉
-
-### Getting your free HuggingFace token
-1. Create a free account at [huggingface.co](https://huggingface.co)
-2. Go to Settings → Access Tokens → New Token → Role: **Read**
-3. Copy the token and set it as `HF_TOKEN` in your `.env` file or Space secrets
-
----
-
-## 🐳 Docker Deployment
+Then open http://localhost:7860. Or use Docker:
 
 ```bash
 docker build -t docmind .
-docker run -p 7860:7860 -e HF_TOKEN=hf_your_token_here docmind
+docker run -p 7860:7860 -e GROQ_API_KEY=your_key docmind
 ```
 
----
+</details>
 
-## 📊 App Modules
+<details>
+<summary><b>Engineering decisions</b></summary>
 
-| Module | Description | Status |
-|--------|-------------|--------|
-| 📤 Upload & Index | PDF / URL ingest, chunk, embed (local BAAI model), FAISS+BM25 index | ✅ Live |
-| 🔍 Research Query | LangGraph 5-agent pipeline with real-time trace log | ✅ Live |
+| Decision | Why |
+|---|---|
+| Combine FAISS and BM25 with Reciprocal Rank Fusion | Vector search finds paraphrases but can miss exact names and numbers, and BM25 does the reverse. RRF merges ranks, so the two score scales never need calibrating. |
+| Grade chunks by score instead of asking an LLM | Free-tier inference is rate limited, and a grading call per chunk would multiply the waiting. The search score plus keyword overlap is instant and repeatable. |
+| Run embeddings locally and download the model at image build | Indexing uses no API quota, and the first request doesn't wait for a model download. |
+| Use one OpenAI-compatible client for Groq and the Hugging Face router | Providers and models are table entries, so adding or swapping one needs no new code. |
+| Keep the graph linear, with no retry loop | The number of LLM calls per question is fixed at three, which keeps latency and free-tier usage predictable. |
+| Judge the answer against the same chunks the generator saw | A critic that sees different text than the generator can approve or reject for the wrong reasons. |
+| Normalise grades by the best possible RRF score | Raw RRF scores are tiny (at most 0.033), so an unscaled threshold either keeps everything or nothing. |
+| Fetch only public addresses, checking every redirect | The URL box makes the server fetch for the visitor. Without a check it could be pointed at internal addresses. |
+| Keep the key server-side and run a single worker | The browser never sees the key. The index and query history live in process memory, so one worker keeps them consistent. |
+| Cap stored query history | Traces are kept in memory, so the oldest are dropped to stop a long-running Space from growing without limit. |
 
----
+</details>
 
-## 🧠 ML Models
+<details>
+<summary><b>Limitations</b></summary>
 
-```python
-stack = {
-    # ── LLM (LangChain LCEL chains) ──────────────────────────────────────────
-    "llm":             "Qwen/Qwen2.5-7B-Instruct",         # via HF Router
-    "lcel_chain":      "ChatPromptTemplate | ChatOpenAI | StrOutputParser",
-    "retry":           "ChatOpenAI.with_retry(stop_after_attempt=2)",
+- **One source for everyone.** The index is global to the server. Loading a document replaces the one another visitor may be asking about, and a restart clears it.
+- **Answers are not verified facts.** The critic is a language model judging another model's output, so its verdict is a heuristic. Check important claims against the source.
+- **The plan doesn't steer retrieval.** The planner's text appears in the trace, but the retriever searches with the original question.
+- **Scanned PDFs don't work.** Text is extracted with pypdf and there is no OCR, so image-only files are rejected.
+- **Some sites can't be fetched.** Pages that block automated requests, need JavaScript to render, or sit behind a login return an error. Web pages are cut at about 15,000 words.
+- **Inference depends on a valid key and a free tier.** If the key is missing or rejected, questions fail with an error that says so. Provider rate limits can also pause answers.
+- **The critic is not stable.** Run twice on the same question, it can approve once and flag the answer the next time. Treat the verdict as a hint.
+- **Citations depend on the model.** The prompt asks for `[Source: file, p.N]` markers, but some models, such as GPT-OSS, often omit them.
+- **No quantitative answer-quality benchmark yet.** Retrieval and answer accuracy haven't been measured on a labelled question set.
+- **The `tools/` folder is not wired in.** The calculator, code runner and web search helpers exist, but the graph doesn't call them.
 
-    # ── RAG (LangChain + custom hybrid) ──────────────────────────────────────
-    "splitter":        "RecursiveCharacterTextSplitter (langchain-text-splitters)",
-    "documents":       "langchain_core.documents.Document",
-    "embeddings":      "HuggingFaceEmbeddings (BAAI/bge-small-en-v1.5, local)",
-    "vector_index":    "FAISS IndexFlatIP (cosine)",
-    "keyword_index":   "BM25Okapi (rank-bm25)",
-    "fusion":          "Reciprocal Rank Fusion (RRF k=60)",
-    "grader":          "score-based (hybrid score × 0.7 + keyword overlap × 0.3)",
+</details>
 
-    # ── Orchestration (LangGraph) ─────────────────────────────────────────────
-    "graph":           "LangGraph 0.2 StateGraph — 5 nodes, linear pipeline",
-}
+<details>
+<summary><b>Configuration</b></summary>
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` | none | Groq API key. When set, Groq is the provider. |
+| `HF_TOKEN` | none | Hugging Face token for the inference router, used only if `GROQ_API_KEY` isn't set. |
+| `SECRET_KEY` | random per start | Flask secret key |
+
+One of the two keys is needed to answer questions. The embedding model (`BAAI/bge-small-en-v1.5`) and the selectable LLMs are set in `rag/embeddings.py` and `agents/llm_factory.py`.
+
+</details>
+
+<details>
+<summary><b>API</b></summary>
+
+`POST` endpoints take and return JSON, except upload, which takes a multipart form.
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /api/upload` | `file` (PDF, up to 10 MB) | Filename and chunk count |
+| `POST /api/ingest_url` | `url` | URL and chunk count |
+| `POST /api/research` | `question`, `model` (optional) | `query_id` |
+| `GET /api/trace/<query_id>` | none | Status, step-by-step trace and, when complete, the answer and verdict |
+| `GET /api/models` | none | Available models and the current one |
+| `POST /api/set_model` | `model` | Confirmation of the active model |
+| `GET /health` | none | Service status, provider, indexed chunk count and active model |
+
+</details>
+
+<details>
+<summary><b>Tests</b></summary>
+
+```bash
+pip install -r requirements.txt pytest
+pytest
 ```
 
----
+The tests replace embeddings and LLM calls with fakes, so they need no network, model download or API key. They cover the grader, chunk selection, hybrid search, the address check for URLs, error messages, bounded history and the Flask routes. One test checks that this README and the Hugging Face copy of it stay identical.
 
-## 📁 Project Structure
+</details>
+
+<details>
+<summary><b>Project structure</b></summary>
 
 ```
-docmind/
-│
-├── 📂 agents/
-│   ├── __init__.py
-│   ├── critic.py
-│   ├── generator.py
-│   ├── grader.py
-│   ├── llm_factory.py
-│   ├── planner.py
-│   └── … 1 more
-├── 📂 data/
-│   ├── processed/
-│   └── raw/
-├── 📂 docs/
-│   └── 013-docmind.html
-├── 📂 graph/
-│   ├── __init__.py
-│   └── research_graph.py
-├── 📂 rag/
-│   ├── __init__.py
-│   ├── embeddings.py
-│   ├── ingestor.py
-│   └── vector_store.py
-├── 📂 templates/                 # HTML templates
-│   └── index.html
-├── 📂 tools/
-│   ├── __init__.py
-│   ├── calculator.py
-│   ├── code_tool.py
-│   └── web_search.py
-├── 📂 tracing/
-│   ├── __init__.py
-│   └── tracer.py
-├── 📄 .env.example               # Environment variable template
-├── 📄 Dockerfile                 # Port 7860, embedding model pre-downloaded
-├── 📄 app.py                     # Flask entry point, 5 REST routes
-├── 📄 code.txt
-├── 📄 requirements.txt           # Python dependencies
-└── 📄 write_html.py
+app.py                  Flask app and API routes
+agents/                 Planner, retriever, grader, generator, critic, LLM factory
+graph/                  LangGraph pipeline
+rag/                    PDF and URL ingestion, embeddings, hybrid vector store
+tracing/                In-memory step trace for the live panel
+tools/                  Calculator, code runner and web search helpers (not wired in)
+templates/              Single-page frontend
+docs/                   Figures used in this README
+scripts/sync_readme.py  Builds the Hugging Face README from .github/README.md
+tests/                  Test suite
+Dockerfile              Gunicorn on port 7860, embedding model baked in
 ```
 
----
-
-## 👨‍💻 Author
-
-<div align="center">
-
-<table>
-<tr>
-<td align="center" width="100%">
-
-<img src="https://avatars.githubusercontent.com/mnoorchenar" width="120" style="border-radius:50%; border: 3px solid #4f46e5;" alt="Mohammad Noorchenarboo"/>
-
-<h3>Mohammad Noorchenarboo</h3>
-
-<code>Data Scientist</code> &nbsp;|&nbsp; <code>AI Researcher</code> &nbsp;|&nbsp; <code>Biostatistician</code>
-
-📍 &nbsp;Ontario, Canada &nbsp;&nbsp; 📧 &nbsp;[mohammadnoorchenarboo@gmail.com](mailto:mohammadnoorchenarboo@gmail.com)
-
-──────────────────────────────────────
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mnoorchenar)&nbsp;
-[![Personal Site](https://img.shields.io/badge/Website-mnoorchenar.github.io-4f46e5?style=for-the-badge&logo=githubpages&logoColor=white)](https://mnoorchenar.github.io/)&nbsp;
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar)&nbsp;
-[![Google Scholar](https://img.shields.io/badge/Scholar-4285F4?style=for-the-badge&logo=googlescholar&logoColor=white)](https://scholar.google.ca/citations?user=nn_Toq0AAAAJ&hl=en)&nbsp;
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar)
-
-</td>
-</tr>
-</table>
-
-</div>
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-3. **Commit** your changes: `git commit -m 'Add amazing feature'`
-4. **Push** to the branch: `git push origin feature/amazing-feature`
-5. **Open** a Pull Request
-
----
-
-## ⚠️ Disclaimer
+</details>
 
 > [!WARNING]
-> This project is developed strictly for educational and research purposes. All LLM outputs are AI-generated and may contain inaccuracies. No real user data is stored. Provided "as is" without warranty of any kind.
+> This project is for research and education only. Answers are AI-generated and can be wrong or incomplete, so verify them against the source. Uploaded files and fetched pages are kept in server memory and disk until replaced or the server restarts.
 
----
-
-## 📜 License
-
-Distributed under the **MIT License**.
-
----
+## Author
 
 <div align="center">
+<table>
+  <tr>
+    <td align="center" width="170">
+      <a href="https://mnoorchenar.github.io/"><img src="https://avatars.githubusercontent.com/mnoorchenar?s=240" width="130" alt="Mohammad Noorchenarboo"/></a>
+    </td>
+    <td>
+      <h3><a href="https://mnoorchenar.github.io/">Mohammad Noorchenarboo</a></h3>
+      Data Scientist · AI Researcher · Biostatistician<br>
+      Ontario, Canada<br><br>
+      <a href="https://mnoorchenar.github.io/"><img src="https://img.shields.io/badge/Website-0f766e?style=flat-square" alt="Website"/></a>
+      <a href="https://www.linkedin.com/in/mnoorchenar"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn"/></a>
+      <a href="https://scholar.google.ca/citations?user=nn_Toq0AAAAJ&hl=en"><img src="https://img.shields.io/badge/Scholar-4285F4?style=flat-square&logo=googlescholar&logoColor=white" alt="Google Scholar"/></a>
+      <a href="https://huggingface.co/mnoorchenar"><img src="https://img.shields.io/badge/Hugging_Face-ffcc00?style=flat-square&logo=huggingface&logoColor=black" alt="Hugging Face"/></a>
+      <a href="mailto:mohammadnoorchenarboo@gmail.com"><img src="https://img.shields.io/badge/Email-EA4335?style=flat-square&logo=gmail&logoColor=white" alt="Email"/></a>
+    </td>
+  </tr>
+</table>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:4f46e5&height=120&section=footer&text=Made%20with%20%E2%9D%A4%EF%B8%8F%20by%20Mohammad%20Noorchenarboo&fontColor=ffffff&fontSize=18&fontAlignY=80" width="100%"/>
-
-[![Star on GitHub](https://img.shields.io/badge/%E2%AD%90_Star-on_GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar/docmind/stargazers)
-[![Fork on GitHub](https://img.shields.io/badge/%F0%9F%8D%B4_Fork-on_GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar/docmind/fork)
-
-<sub>The name "DocMind — Agentic Research Platform" is used purely for academic and research purposes. Any similarity to existing product names or trademarks is entirely coincidental. This project has no affiliation with any commercial entity.</sub>
+Released under the [MIT License](LICENSE).
 
 </div>
