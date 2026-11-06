@@ -545,7 +545,7 @@ textarea:focus{border-color:var(--accent)}
         <span class="arch-node-icon">&#128451;</span>
         <div class="arch-node-name">Hybrid Index</div>
         <div class="arch-node-sub">FAISS + BM25</div>
-        <div class="arch-node-sub2">768-dim &middot; RRF k=60</div>
+        <div class="arch-node-sub2">384-dim &middot; RRF k=60</div>
       </div>
       <span style="font-size:.62rem;color:var(--teal);margin-left:10px;align-self:center;white-space:nowrap">
         &#8593; feeds Retriever
@@ -955,7 +955,11 @@ function renderTrace(steps){
 
 function renderAnswer(result){
   document.getElementById("answer-wrap").style.display="block";
-  document.getElementById("answer-text").textContent=result.generation||"No answer generated.";
+  const raw=result.generation||"No answer generated.";
+  // Escape first, then allow only **bold** and normalise the 【source】 brackets some models emit.
+  document.getElementById("answer-text").innerHTML=esc(raw)
+    .replace(/\*\*([^*\n]+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/【/g,"[").replace(/】/g,"]");
   const v=document.getElementById("verdict");
   if(result.verdict==="APPROVED"){v.className="v-ok";v.textContent="✓ High confidence";}
   else if(result.verdict){v.className="v-warn";v.textContent="⚠ Low confidence — verify with source";}
