@@ -112,7 +112,6 @@ docker run -p 7860:7860 -e GROQ_API_KEY=your_key docmind
 - **The critic is not stable.** Run twice on the same question, it can approve once and flag the answer the next time. Treat the verdict as a hint.
 - **Citations depend on the model.** The prompt asks for `[Source: file, p.N]` markers, but some models, such as GPT-OSS, often omit them.
 - **No quantitative answer-quality benchmark yet.** Retrieval and answer accuracy haven't been measured on a labelled question set.
-- **The `tools/` folder is not wired in.** The calculator, code runner and web search helpers exist, but the graph doesn't call them.
 
 </details>
 
@@ -167,7 +166,6 @@ agents/                 Planner, retriever, grader, generator, critic, LLM facto
 graph/                  LangGraph pipeline
 rag/                    PDF and URL ingestion, embeddings, hybrid vector store
 tracing/                In-memory step trace for the live panel
-tools/                  Calculator, code runner and web search helpers (not wired in)
 templates/              Single-page frontend
 docs/                   Figures used in this README
 scripts/sync_readme.py  Builds the Hugging Face README from .github/README.md
